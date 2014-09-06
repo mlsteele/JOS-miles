@@ -88,13 +88,15 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
             pargv[0], pargv[1], pargv[2], pargv[3], pargv[4]);
 
         // Symbolic info
-        debuginfo_eip(instruction_pointer, &frame_info);
-        cprintf("    %s:%d: %.*s+%d\n",
-                frame_info.eip_file,
-                frame_info.eip_line,
-                frame_info.eip_fn_namelen,
-                frame_info.eip_fn_name,
-                frame_info.eip_fn_addr);
+        i = debuginfo_eip(instruction_pointer, &frame_info);
+        if (i == 0) {
+            cprintf("    %s:%d: %.*s+%d\n",
+                    frame_info.eip_file,
+                    frame_info.eip_line,
+                    frame_info.eip_fn_namelen,
+                    frame_info.eip_fn_name,
+                    frame_info.eip_fn_addr);
+        }
 
         // Advance to next frame.
         base_pointer = (uint32_t*)*base_pointer;
