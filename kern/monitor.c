@@ -70,18 +70,33 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
     uint32_t *base_pointer = (uint32_t*)read_ebp();
     uint32_t instruction_pointer;
-    uint32_t pargv[5];
+    uint32_t pargv[5]; // frame arguments to print
+    struct Eipdebuginfo frame_info;
     int i;
+
+    cprintf("Stack backtrace:\n");
     while (base_pointer != 0) {
         instruction_pointer = *(base_pointer + 1);
+        // Extract the arguments
         for (i = 0; i < 5; i++) {
             pargv[i] = *(base_pointer + i + 2);
         };
-        cprintf("ebp %x  eip %x  args %8.0x %8.0x %8.0x %8.0x %8.0x\n",
+
+        // Basic info
+        cprintf("  ebp %x  eip %x  args %8.0x %8.0x %8.0x %8.0x %8.0x\n",
             base_pointer, instruction_pointer,
             pargv[0], pargv[1], pargv[2], pargv[3], pargv[4]);
 
-        // Next frame.
+        // Symbolic info
+        debuginfo_eip(instruction_pointer, &frame_info);
+        cprintf("    %s:%d: %.*s+%d\n",
+                frame_info.eip_file,
+                frame_info.eip_line,
+                frame_info.eip_fn_namelen,
+                frame_info.eip_fn_name,
+                frame_info.eip_fn_addr);
+
+        // Advance to next frame.
         base_pointer = (uint32_t*)*base_pointer;
     }
 	return 0;
