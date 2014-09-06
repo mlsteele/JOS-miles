@@ -68,13 +68,21 @@ mon_exit(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-    uint32_t base_pointer = read_ebp();
+    uint32_t *base_pointer = (uint32_t*)read_ebp();
     uint32_t instruction_pointer;
+    uint32_t pargv[5];
+    int i;
     while (base_pointer != 0) {
-        instruction_pointer = *(uint32_t*)base_pointer + 4;
-        base_pointer = *(uint32_t*)base_pointer;
-        cprintf("ebp %x  eip %x  args 00000001 f0109e80 f0109e98 f0100ed2 00000031\n",
-            base_pointer, instruction_pointer);
+        instruction_pointer = *(uint32_t*)(base_pointer + 4);
+        for (i = 0; i < 5; i++) {
+            pargv[i] = 0;
+        };
+        cprintf("ebp %x  eip %x  args %x %x %x %x %x\n",
+            base_pointer, instruction_pointer,
+            pargv[0], pargv[1], pargv[2], pargv[3], pargv[4]);
+
+        // Next frame.
+        base_pointer = (uint32_t*)*base_pointer;
     }
 	return 0;
 }
