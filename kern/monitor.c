@@ -24,6 +24,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Exit from the monitor", mon_backtrace },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -95,7 +96,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
                     frame_info.eip_line,
                     frame_info.eip_fn_namelen,
                     frame_info.eip_fn_name,
-                    frame_info.eip_fn_addr);
+                    instruction_pointer - frame_info.eip_fn_addr);
         }
 
         // Advance to next frame.
