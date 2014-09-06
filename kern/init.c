@@ -19,6 +19,16 @@ test_backtrace(int x)
 	cprintf("leaving test_backtrace %d\n", x);
 }
 
+void special_snowflake() {
+    int x = 1, y = 3, z = 4;
+    cprintf("x %d, y %x, z %d\n", x, y, z);
+
+    unsigned int i = 0x00646c72;
+    cprintf("H%x Wo%s\n", 57616, &i);
+
+    cprintf("x=%d y=%d\n", 3);
+}
+
 void
 i386_init(void)
 {
@@ -34,6 +44,7 @@ i386_init(void)
 	cons_init();
 
 	cprintf("6828 decimal is %o octal!\n", 6828);
+    special_snowflake();
 
 	// Test the stack backtrace function (lab 1 only)
 	test_backtrace(5);
