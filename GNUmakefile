@@ -86,6 +86,9 @@ PERL	:= perl
 CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD
 CFLAGS += -fno-omit-frame-pointer
 CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
+# -fno-tree-ch prevented gcc from sometimes reordering read_ebp() before
+# mon_backtrace()'s function prologue on gcc version: (Debian 4.7.2-5) 4.7.2
+CFLAGS += -fno-tree-ch
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -142,6 +145,9 @@ QEMUOPTS += $(QEMUEXTRA)
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
+gdb:
+	gdb -x .gdbinit
+
 pre-qemu: .gdbinit
 
 qemu: $(IMAGES) pre-qemu
@@ -155,13 +161,13 @@ qemu-nox: $(IMAGES) pre-qemu
 
 qemu-gdb: $(IMAGES) pre-qemu
 	@echo "***"
-	@echo "*** Now run 'gdb'." 1>&2
+	@echo "*** Now run 'make gdb'." 1>&2
 	@echo "***"
 	$(QEMU) $(QEMUOPTS) -S
 
 qemu-nox-gdb: $(IMAGES) pre-qemu
 	@echo "***"
-	@echo "*** Now run 'gdb'." 1>&2
+	@echo "*** Now run 'make gdb'." 1>&2
 	@echo "***"
 	$(QEMU) -nographic $(QEMUOPTS) -S
 
@@ -218,7 +224,7 @@ handin: tarball-pref myapi.key
 	    > /dev/null || { \
 		echo ; \
 		echo Submit seems to have failed.; \
-		echo Please go to $(WEBSUB) and upload the tarball manually.; }
+		echo Please go to $(WEBSUB)/ and upload the tarball manually.; }
 
 handin-check:
 	@if ! test -d .git; then \
