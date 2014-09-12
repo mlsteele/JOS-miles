@@ -24,6 +24,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Exit from the monitor", mon_backtrace },
+	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -56,9 +58,50 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 }
 
 int
+mon_exit(int argc, char **argv, struct Trapframe *tf)
+{
+	extern char _start[], entry[], etext[], edata[], end[];
+
+	cprintf("Goodbye.\n");
+	return -1;
+}
+
+int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+    uint32_t *base_pointer = (uint32_t*)read_ebp();
+    uint32_t instruction_pointer;
+    uint32_t pargv[5]; // frame arguments to print
+    struct Eipdebuginfo frame_info;
+    int i;
+
+    cprintf("Stack backtrace:\n");
+    while (base_pointer != 0) {
+        instruction_pointer = *(base_pointer + 1);
+        // Extract the arguments
+        for (i = 0; i < 5; i++) {
+            pargv[i] = *(base_pointer + i + 2);
+        };
+
+        // Basic info
+        cprintf("  ebp %x  eip %x  args %8.0x %8.0x %8.0x %8.0x %8.0x\n",
+            base_pointer, instruction_pointer,
+            pargv[0], pargv[1], pargv[2], pargv[3], pargv[4]);
+
+        // Symbolic info
+        i = debuginfo_eip(instruction_pointer, &frame_info);
+        if (i == 0) {
+            cprintf("    %s:%d: %.*s+%d\n",
+                    frame_info.eip_file,
+                    frame_info.eip_line,
+                    frame_info.eip_fn_namelen,
+                    frame_info.eip_fn_name,
+                    instruction_pointer - frame_info.eip_fn_addr);
+        }
+
+        // Advance to next frame.
+        base_pointer = (uint32_t*)*base_pointer;
+    }
 	return 0;
 }
 
