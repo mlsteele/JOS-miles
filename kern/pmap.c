@@ -528,8 +528,20 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
-    panic("NOT IMPLEMENTED");
+    pte_t *pgtable_entry;
+    struct PageInfo *pp;
+    if (!(pp = page_lookup(pgdir, va, &pgtable_entry))) {
+        // No mapping, return after no op.
+        return;
+    }
+
+    // Reference counting.
+    if (pp->pp_ref <= 0) panic("page_remove found a page with negative ref count"); 
+    page_decref(pp);
+
+    // Remove page from paging map.
+    *pgtable_entry = 0;
+    tlb_invalidate(pgdir, va);
 }
 
 //
