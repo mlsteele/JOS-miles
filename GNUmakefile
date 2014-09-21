@@ -170,7 +170,6 @@ qemu-nox-gdb: $(IMAGES) pre-qemu
 	@echo "*** Now run 'make gdb'." 1>&2
 	@echo "***"
 	$(QEMU) -nographic $(QEMUOPTS) -S
-
 print-qemu:
 	@echo $(QEMU)
 
@@ -220,6 +219,7 @@ git-handin: handin-check
 WEBSUB = https://ccutler.scripts.mit.edu/6.828/handin.py
 
 handin: tarball-pref myapi.key
+	@echo DID YOU REMEMBER TO COMMIT LAB QUESTION ANSWERS
 	@curl -f -F file=@lab$(LAB)-handin.tar.gz -F key=\<myapi.key $(WEBSUB)/upload \
 	    > /dev/null || { \
 		echo ; \
