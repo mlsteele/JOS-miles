@@ -100,7 +100,7 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-    unsigned int required_pages = n/PGSIZE + (n%PGSIZE == 0 ? 0 : 1);
+    size_t required_pages = n/PGSIZE + (n%PGSIZE == 0 ? 0 : 1);
 	cprintf("boot_alloc reporting for duty (n: %d, pages: %d).\n", n, required_pages);
 
     result = nextfree;
@@ -434,8 +434,17 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
-    panic("NOT IMPLEMENTED");
+    size_t required_pages = size / PGSIZE;
+    size_t page_offset = 0;
+    for (page_offset = 0; page_offset < required_pages; page_offset++) {
+        uintptr_t va_local = va + page_offset * PGSIZE;
+        physaddr_t pa_local = pa + page_offset * PGSIZE;
+        pte_t *pgtable_entry;
+        if (!(pgtable_entry = pgdir_walk(pgdir, (void*)va_local, true))) {
+            panic("Could not allocate page for page table while using boot_map_region.");
+        }
+        *pgtable_entry = PTE_ADDR(pa_local) | perm | PTE_P;
+    }
 }
 
 //
@@ -466,9 +475,14 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
-    panic("NOT IMPLEMENTED");
-	return 0;
+    physaddr_t pa = page2pa(pp);
+    page_remove(pgdir, va);
+
+    pte_t *pgtable_entry = pgdir_walk(pgdir, va, true);
+    if (!pgtable_entry) return -E_NO_MEM;
+    *pgtable_entry = PTE_ADDR(pa) | perm | PTE_P;
+    pp->pp_ref += 1;
+    return 0;
 }
 
 //
@@ -485,9 +499,15 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-    panic("NOT IMPLEMENTED");
-	return NULL;
+    pte_t *pgtable_entry = pgdir_walk(pgdir, (void*)va, false);
+    if (pte_store != NULL) {
+        *pte_store = pgtable_entry;
+    }
+    if (pgtable_entry == NULL) return NULL;
+    if (!(*pgtable_entry & PTE_P)) return NULL;
+    physaddr_t page_paddr = PTE_ADDR(*pgtable_entry);
+    struct PageInfo *pinfo = pa2page(page_paddr);
+    return pinfo;
 }
 
 //
