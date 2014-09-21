@@ -1,0 +1,11 @@
+# Question 1
+It should be a virtual address (uintptr_t).
+Because value, fetched from return_a_pointer, returns a C pointer represented with a virtual address.
+
+uintptr_t x; // Declare a virtual address.
+char* value = return_a_pointer(); // Get a pointer (programs operate in virtual memory).
+*value = 10; // Set value of the byte pointed to by the virtual pointer value to 0b1010.
+x = (mystery_t) value; // Set x to the number that is a virtual address.
+
+# Challenge Problem
+TODO
