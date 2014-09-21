@@ -384,9 +384,40 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-    panic("NOT IMPLEMENTED");
-	return NULL;
+    uintptr_t pgdir_index = PDX(va);
+    uintptr_t pgtable_index = PTX(va);
+
+    pde_t *pgdir_entry = &pgdir[pgdir_index];
+    physaddr_t pgtable_paddr_wflags = PTE_ADDR(*pgdir_entry);
+    physaddr_t pgtable_paddr = PTE_ADDR(pgtable_paddr_wflags);
+    if (pgtable_paddr_wflags & PTE_P) {
+        // Page table present.
+        pte_t *pgtable = KADDR(pgtable_paddr);
+        pte_t *pgtable_entry = &pgtable[pgtable_index];
+        return pgtable_entry;
+    } else {
+        // Page table missing.
+        if (create) {
+            // We should allocate a new page table.
+            struct PageInfo *pgtable_pinfo;
+            if (!(pgtable_pinfo = page_alloc(ALLOC_ZERO))) {
+                // Failed to allocate page for pgtable.
+                return NULL;
+            }
+            pgtable_pinfo->pp_ref += 1;
+            // Point the pgdir entry to the new pgtable page.
+            pgtable_paddr = page2pa(pgtable_pinfo);
+            *pgdir_entry = pgtable_paddr | PTE_P;
+
+            // Point to an entry in our new pgtable.
+            pte_t *pgtable = KADDR(pgtable_paddr);
+            pte_t *pgtable_entry = &pgtable[pgtable_index];
+            return pgtable_entry;
+        } else {
+            // We should not allocate a new page table.
+            return NULL;
+        }
+    }
 }
 
 //
