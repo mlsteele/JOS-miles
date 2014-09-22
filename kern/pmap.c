@@ -408,7 +408,9 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
             pgtable_pinfo->pp_ref += 1;
             // Point the pgdir entry to the new pgtable page.
             pgtable_paddr = page2pa(pgtable_pinfo);
-            *pgdir_entry = pgtable_paddr | PTE_P;
+            // Make the pgdir entry permit all.
+            // So that pgtable entries determine permissions restrictions.
+            *pgdir_entry = pgtable_paddr | PTE_P | PTE_U | PTE_W;
 
             // Point to an entry in our new pgtable.
             pte_t *pgtable = KADDR(pgtable_paddr);
