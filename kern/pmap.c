@@ -264,7 +264,6 @@ page_init(void)
 	// Change the code to reflect this.
 	// NBD: DO NOT actually touch the physical memory corresponding to
 	// free pages!
-    cprintf("page_init trace 1\n");
 	size_t i;
     physaddr_t boot_heap_end = PADDR(boot_alloc(0));
 	for (i = 0; i < npages; i++) {
@@ -287,9 +286,6 @@ page_init(void)
             page_free_list = &pages[i];
         }
 	}
-    cprintf("page_init trace out\n");
-    cprintf("boot heap end %p\n", boot_heap_end);
-    cprintf("boot alloc last %p\n", boot_alloc(0));
 }
 
 //
@@ -566,7 +562,6 @@ tlb_invalidate(pde_t *pgdir, void *va)
 static void
 check_page_free_list(bool only_low_memory)
 {
-    cprintf("check_page_free_list trace 1\n");
 	struct PageInfo *pp;
 	unsigned pdx_limit = only_low_memory ? 1 : NPDENTRIES;
 	int nfree_basemem = 0, nfree_extmem = 0;
@@ -590,15 +585,11 @@ check_page_free_list(bool only_low_memory)
 		page_free_list = pp1;
 	}
 
-    cprintf("check_page_free_list trace 2\n");
-
 	// if there's a page that shouldn't be on the free list,
 	// try to make sure it eventually causes trouble.
 	for (pp = page_free_list; pp; pp = pp->pp_link)
 		if (PDX(page2pa(pp)) < pdx_limit)
 			memset(page2kva(pp), 0x97, 128);
-
-    cprintf("check_page_free_list trace 3\n");
 
 	first_free_page = (char *) boot_alloc(0);
 	for (pp = page_free_list; pp; pp = pp->pp_link) {
@@ -620,12 +611,8 @@ check_page_free_list(bool only_low_memory)
 			++nfree_extmem;
 	}
 
-    cprintf("check_page_free_list trace 4\n");
-
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
-
-    cprintf("check_page_free_list trace 5\n");
 }
 
 //
