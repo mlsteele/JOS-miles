@@ -388,10 +388,11 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
     uintptr_t pgtable_index = PTX(va);
 
     pde_t *pgdir_entry = &pgdir[pgdir_index];
-    physaddr_t pgtable_paddr_wflags = PTE_ADDR(*pgdir_entry);
-    physaddr_t pgtable_paddr = PTE_ADDR(pgtable_paddr_wflags);
-    if (pgtable_paddr_wflags & PTE_P) {
+    physaddr_t pgtable_paddr = *pgdir_entry;
+    if (pgtable_paddr & PTE_P) {
         // Page table present.
+        // remove the flags
+        pgtable_paddr = PTE_ADDR(pgtable_paddr);
         pte_t *pgtable = KADDR(pgtable_paddr);
         pte_t *pgtable_entry = &pgtable[pgtable_index];
         return pgtable_entry;
@@ -475,13 +476,17 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-    physaddr_t pa = page2pa(pp);
-    page_remove(pgdir, va);
-
+    // Get the pgtable entry that we will assign.
     pte_t *pgtable_entry = pgdir_walk(pgdir, va, true);
     if (!pgtable_entry) return -E_NO_MEM;
-    *pgtable_entry = PTE_ADDR(pa) | perm | PTE_P;
+
+    // Increment refcount before calling remove so it doesn't get freed.
     pp->pp_ref += 1;
+    page_remove(pgdir, va);
+
+    // Assign mapping.
+    physaddr_t pa = page2pa(pp);
+    *pgtable_entry = PTE_ADDR(pa) | perm | PTE_P;
     return 0;
 }
 
