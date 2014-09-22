@@ -100,22 +100,16 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-    size_t required_pages = n/PGSIZE + (n%PGSIZE == 0 ? 0 : 1);
-	cprintf("boot_alloc reporting for duty (n: %d, pages: %d).\n", n, required_pages);
-
-    result = nextfree;
-    candidate1 = candidate2 = nextfree;
-    candidate1 += required_pages * PGSIZE;
-    candidate2 = ROUNDUP(nextfree + n, PGSIZE);
-    // TODO panic if out of memory please.
-
-    if (candidate1 == candidate2) {
-        cprintf("boot_alloc match.\n");
-    } else {
-        panic("boot_alloc mismatch.\n");
+    // Make sure there is still memory.
+    if (PADDR(nextfree) >= npages * PGSIZE) {
+        panic("boot_alloc out of memory");
     }
 
-    nextfree = candidate1;
+    size_t required_pages = n/PGSIZE + (n%PGSIZE == 0 ? 0 : 1);
+    // cprintf("boot_alloc allocating %d pages for %n bytes.\n", required_pages, n);
+
+    result = nextfree;
+    nextfree += required_pages * PGSIZE;
     return result;
 }
 
@@ -177,11 +171,9 @@ mem_init(void)
 	page_init();
 
 	check_page_free_list(1);
-    /* panic("miles abort 1"); */
 	check_page_alloc();
-    /* panic("miles abort 2"); */
 	check_page();
-    panic("miles abort 3");
+    panic("hold your horses");
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
