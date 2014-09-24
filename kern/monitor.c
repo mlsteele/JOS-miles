@@ -144,9 +144,10 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
     }
 
     // Do stuff
-    cprintf("va low : %x\n", va_lo);
-    cprintf("va high: %x\n", va_hi);
+    cprintf("va low : %08x\n", va_lo);
+    cprintf("va high: %08x\n", va_hi);
 
+    cprintf("VA          PA          PERMS\n");
     pte_t *pgtable_entry = pgdir_walk(kern_pgdir, (void*)va_lo, false);
     if (!pgtable_entry) {
         // VA has no page table.
@@ -155,9 +156,11 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
         physaddr_t pa_wflags = *pgtable_entry;
         if (!(pa_wflags & PTE_P)) {
             // VA has no page.
-            cprintf("no page for address.\n");
+            cprintf("%08p  --------  U:- W:-\n", va_lo);
         } else {
-            cprintf("physical addr: %p [U:%d, W:%d]\n",
+            // Page mapping found.
+            cprintf("%08p  %08p  U:%d W:%d\n",
+                va_lo,
                 PTE_ADDR(pa_wflags),
                 !!(pa_wflags & PTE_U),
                 !!(pa_wflags & PTE_W));
