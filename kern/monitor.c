@@ -28,6 +28,7 @@ static struct Command commands[] = {
 	{ "backtrace", "Exit from the monitor", mon_backtrace },
 	{ "showmappings", "Show memory mappings for virtual range", mon_showmappings },
 	{ "sm", "aliased to showmappings", mon_showmappings },
+	{ "pgmod", "Change permission of page mappings", mon_pgmod },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -174,7 +175,7 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
     cprintf("VA          PA          PERMS\n");
 
     // Entries.
-    uintptr_t va = ROUNDDOWN(va_lo, PGSIZE);
+    uintptr_t va = (ROUNDDOWN(va_lo, PGSIZE));
     for (; va <= va_hi; va += PGSIZE) {
         mon_showmappings_entry((void*)va);
     }
@@ -182,6 +183,66 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
+int
+mon_pgmod(int argc, char **argv, struct Trapframe *tf)
+{
+    // Make sure there are 3 args.
+    if (argc != 4) {
+        cprintf("Change permission of page mappings.\n\n");
+        cprintf("Usage:\n");
+        cprintf("pgmod <addr> <user> <write>\n");
+        return 0;
+    }
+
+    // Read arguments
+    uintptr_t va;
+    bool allow_user;
+    bool allow_write;
+    char *arg_end;
+    // First arg
+    va = strtol(argv[1], &arg_end, 16);
+    if (arg_end == argv[1]) {
+        cprintf("Error: First argument must be a hex number.\n");
+        return 0;
+    }
+    if (va != ROUNDDOWN(va, PGSIZE)) {
+        cprintf("Error: <addr> must be a page aligned.\n");
+        return 0;
+    }
+    va = ROUNDDOWN(va, PGSIZE);
+    // Second arg
+    allow_user = strtol(argv[2], &arg_end, 16);
+    if (arg_end == argv[2] || !(allow_user == 0 || allow_user == 1)) {
+        cprintf("Error: Second argument must be 0 or 1.\n");
+        return 0;
+    }
+    // Second arg
+    allow_write = strtol(argv[3], &arg_end, 16);
+    if (arg_end == argv[3] || !(allow_write == 0 || allow_write == 1)) {
+        cprintf("Error: Third argument must be 0 or 1.\n");
+        return 0;
+    }
+
+    pte_t *pgtable_entry = pgdir_walk(kern_pgdir, (void*)va, false);
+    if (!pgtable_entry) {
+        // VA has no page table.
+        cprintf("%08p has no page table.\n", va);
+        return 0;
+    }
+    physaddr_t pa_wflags = *pgtable_entry;
+    if (!(pa_wflags | PTE_P)) {
+        cprintf("%08p has no page.\n", va);
+        return 0;
+    }
+    // Clear permissions bits.
+    pa_wflags = pa_wflags & ~PTE_U & ~PTE_W;
+    // Set permissions bits.
+    pa_wflags = pa_wflags | (allow_user ? PTE_U : 0) | (allow_write ? PTE_W : 0);
+    // Deploy entry.
+    *pgtable_entry = pa_wflags;
+
+    return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/
