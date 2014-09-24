@@ -132,6 +132,9 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 {
     // Make sure there are two args.
     if (!(2 <= argc && argc <= 3)) {
+        cprintf("Show virtual memory mappings.\n");
+        cprintf("Remember that the arguments are virtual addresses, ");
+        cprintf("not virtual page numbers.\n\n");
         cprintf("Usage:\n");
         cprintf("showmappings <addr>\n");
         cprintf("showmappings <low_addr> <high_addr>\n");
