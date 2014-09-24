@@ -130,9 +130,6 @@ static void mon_showmappings_entry(void *va) {
 int
 mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 {
-    cprintf("UPAGES: %x\n", UPAGES);
-    cprintf("KSTACKTOP: %x\n", KSTACKTOP);
-
     // Make sure there are two args.
     if (!(2 <= argc && argc <= 3)) {
         cprintf("Usage:\n");
@@ -161,14 +158,14 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
             cprintf("Error: Argument <high_addr> must be a hex number.\n");
             return 0;
         }
+        if (va_hi < va_lo) {
+            cprintf("Error: Argument <high_addr> must be greater than <low_addr>\n");
+            return 0;
+        }
     } else {
         // Only one argument supplied.
         va_hi = va_lo;
     }
-
-    // Do stuff
-    cprintf("va low : %08x\n", va_lo);
-    cprintf("va high: %08x\n", va_hi);
 
     // Table header.
     cprintf("VA          PA          PERMS\n");
