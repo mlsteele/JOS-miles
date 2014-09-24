@@ -10,6 +10,7 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -25,6 +26,8 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Exit from the monitor", mon_backtrace },
+	{ "showmappings", "Show memory mappings for virtual range", mon_showmappings },
+	{ "sm", "aliased to showmappings", mon_showmappings },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -60,8 +63,6 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_exit(int argc, char **argv, struct Trapframe *tf)
 {
-	extern char _start[], entry[], etext[], edata[], end[];
-
 	cprintf("Goodbye.\n");
 	return -1;
 }
@@ -103,6 +104,67 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
         base_pointer = (uint32_t*)*base_pointer;
     }
 	return 0;
+}
+
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+    cprintf("UPAGES: %x\n", UPAGES);
+    cprintf("KSTACKTOP: %x\n", KSTACKTOP);
+
+    // Make sure there are two args.
+    if (!(2 <= argc && argc <= 3)) {
+        cprintf("Usage:\n");
+        cprintf("showmappings <addr>\n");
+        cprintf("showmappings <low_addr> <high_addr>\n");
+        return 0;
+    }
+
+    // Read arguments
+    bool range = false;
+    char *lo_str = argv[1];
+    char *hi_str = argv[2];
+    // end ptr used as failure indicator for strtol
+    char *arg_end;
+    uintptr_t va_lo = 0;
+    uintptr_t va_hi = 0;
+    va_lo = strtol(lo_str, &arg_end, 16);
+    if (arg_end == lo_str) {
+        cprintf("Error: First argument must be a hex number.\n");
+        return 0;
+    }
+    if (argc > 2) {
+        va_hi = strtol(hi_str, &arg_end, 16);
+        if (arg_end == hi_str) {
+            cprintf("Error: Argument <high_addr> must be a hex number.\n");
+            return 0;
+        } else {
+            range = true;
+        }
+    }
+
+    // Do stuff
+    cprintf("va low : %x\n", va_lo);
+    cprintf("va high: %x\n", va_hi);
+
+    pte_t *pgtable_entry = pgdir_walk(kern_pgdir, (void*)va_lo, false);
+    if (!pgtable_entry) {
+        // VA has no page table.
+        cprintf("no page table for address.\n");
+    } else {
+        physaddr_t pa_wflags = *pgtable_entry;
+        if (!(pa_wflags & PTE_P)) {
+            // VA has no page.
+            cprintf("no page for address.\n");
+        } else {
+            cprintf("physical addr: %p [U:%d, W:%d]\n",
+                PTE_ADDR(pa_wflags),
+                !!(pa_wflags & PTE_U),
+                !!(pa_wflags & PTE_W));
+        }
+    }
+
+    return 0;
 }
 
 
