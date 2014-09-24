@@ -106,6 +106,27 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+static void mon_showmappings_entry(void *va) {
+    pte_t *pgtable_entry = pgdir_walk(kern_pgdir, va, false);
+    if (!pgtable_entry) {
+        // VA has no page table.
+        cprintf("%08p  -no-table-  U:- W:-\n", va);
+    } else {
+        physaddr_t pa_wflags = *pgtable_entry;
+        if (!(pa_wflags & PTE_P)) {
+            // VA has no page.
+            cprintf("%08p  -no-page-  U:- W:-\n", va);
+        } else {
+            // Page mapping found.
+            cprintf("%08p  %08p  U:%d W:%d\n",
+                va,
+                PTE_ADDR(pa_wflags),
+                !!(pa_wflags & PTE_U),
+                !!(pa_wflags & PTE_W));
+        }
+    }
+}
+
 int
 mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 {
@@ -121,7 +142,6 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
     }
 
     // Read arguments
-    bool range = false;
     char *lo_str = argv[1];
     char *hi_str = argv[2];
     // end ptr used as failure indicator for strtol
@@ -129,42 +149,34 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
     uintptr_t va_lo = 0;
     uintptr_t va_hi = 0;
     va_lo = strtol(lo_str, &arg_end, 16);
+    // Read first argument.
     if (arg_end == lo_str) {
         cprintf("Error: First argument must be a hex number.\n");
         return 0;
     }
+    // Possibly read second argument.
     if (argc > 2) {
         va_hi = strtol(hi_str, &arg_end, 16);
         if (arg_end == hi_str) {
             cprintf("Error: Argument <high_addr> must be a hex number.\n");
             return 0;
-        } else {
-            range = true;
         }
+    } else {
+        // Only one argument supplied.
+        va_hi = va_lo;
     }
 
     // Do stuff
     cprintf("va low : %08x\n", va_lo);
     cprintf("va high: %08x\n", va_hi);
 
+    // Table header.
     cprintf("VA          PA          PERMS\n");
-    pte_t *pgtable_entry = pgdir_walk(kern_pgdir, (void*)va_lo, false);
-    if (!pgtable_entry) {
-        // VA has no page table.
-        cprintf("no page table for address.\n");
-    } else {
-        physaddr_t pa_wflags = *pgtable_entry;
-        if (!(pa_wflags & PTE_P)) {
-            // VA has no page.
-            cprintf("%08p  --------  U:- W:-\n", va_lo);
-        } else {
-            // Page mapping found.
-            cprintf("%08p  %08p  U:%d W:%d\n",
-                va_lo,
-                PTE_ADDR(pa_wflags),
-                !!(pa_wflags & PTE_U),
-                !!(pa_wflags & PTE_W));
-        }
+
+    // Entries.
+    uintptr_t va = ROUNDDOWN(va_lo, PGSIZE);
+    for (; va <= va_hi; va += PGSIZE) {
+        mon_showmappings_entry((void*)va);
     }
 
     return 0;
