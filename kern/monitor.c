@@ -29,6 +29,7 @@ static struct Command commands[] = {
 	{ "showmappings", "Show memory mappings for virtual range", mon_showmappings },
 	{ "sm", "aliased to showmappings", mon_showmappings },
 	{ "pgmod", "Change permission of page mappings", mon_pgmod },
+	{ "memxv", "Examine a range of virtual memory", mon_memxv },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -131,7 +132,7 @@ static void mon_showmappings_entry(void *va) {
 int
 mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 {
-    // Make sure there are two args.
+    // Make sure there are 1 or 2 args.
     if (!(2 <= argc && argc <= 3)) {
         cprintf("Show virtual memory mappings.\n");
         cprintf("Remember that the arguments are virtual addresses, ");
@@ -244,6 +245,63 @@ mon_pgmod(int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
+int
+mon_memxv(int argc, char **argv, struct Trapframe *tf)
+{
+    // Make sure there are 1 or 2 args.
+    if (!(2 <= argc && argc <= 3)) {
+        cprintf("Examine a range of virtual memory.\n\n");
+        cprintf("Usage:\n");
+        cprintf("memxv <addr>\n");
+        cprintf("memxv <low_addr> <high_addr>\n");
+        return 0;
+    }
+
+    // Read arguments
+    char *lo_str = argv[1];
+    char *hi_str = argv[2];
+    // end ptr used as failure indicator for strtol
+    char *arg_end;
+    uintptr_t va_lo = 0;
+    uintptr_t va_hi = 0;
+    va_lo = strtol(lo_str, &arg_end, 16);
+    // Read first argument.
+    if (arg_end == lo_str) {
+        cprintf("Error: First argument must be a hex number.\n");
+        return 0;
+    }
+    // Possibly read second argument.
+    if (argc > 2) {
+        va_hi = strtol(hi_str, &arg_end, 16);
+        if (arg_end == hi_str) {
+            cprintf("Error: Argument <high_addr> must be a hex number.\n");
+            return 0;
+        }
+        if (va_hi < va_lo) {
+            cprintf("Error: Argument <high_addr> must be greater than <low_addr>\n");
+            return 0;
+        }
+    } else {
+        // Only one argument supplied.
+        va_hi = va_lo;
+    }
+
+    // Table header.
+    cprintf("VA          VALUE\n");
+
+    // Entries.
+    uintptr_t va = va_lo;
+    for (; va <= va_hi; va += 4) {
+        if (page_lookup(kern_pgdir, (void*)va, NULL)) {
+            cprintf("%08p  %08p\n", va, *(uint32_t*)va);
+        } else {
+            // Memory not mapped.
+            cprintf("%08p  --------\n", va);
+        }
+    }
+
+    return 0;
+}
 
 /***** Kernel monitor command interpreter *****/
 
