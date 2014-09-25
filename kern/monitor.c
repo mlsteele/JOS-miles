@@ -30,6 +30,7 @@ static struct Command commands[] = {
 	{ "sm", "aliased to showmappings", mon_showmappings },
 	{ "pgmod", "Change permission of page mappings", mon_pgmod },
 	{ "memxv", "Examine a range of virtual memory", mon_memxv },
+	{ "memxp", "Examine a range of physical memory", mon_memxp },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -297,6 +298,63 @@ mon_memxv(int argc, char **argv, struct Trapframe *tf)
         } else {
             // Memory not mapped.
             cprintf("%08p  --------\n", va);
+        }
+    }
+
+    return 0;
+}
+
+int
+mon_memxp(int argc, char **argv, struct Trapframe *tf)
+{
+    // Make sure there are 1 or 2 args.
+    if (!(2 <= argc && argc <= 3)) {
+        cprintf("Examine a range of physical memory.\n\n");
+        cprintf("Usage:\n");
+        cprintf("memxv <addr>\n");
+        cprintf("memxv <low_addr> <high_addr>\n");
+        return 0;
+    }
+
+    // Read arguments
+    char *lo_str = argv[1];
+    char *hi_str = argv[2];
+    // end ptr used as failure indicator for strtol
+    char *arg_end;
+    uintptr_t pa_lo = 0;
+    uintptr_t pa_hi = 0;
+    pa_lo = strtol(lo_str, &arg_end, 16);
+    // Read first argument.
+    if (arg_end == lo_str) {
+        cprintf("Error: First argument must be a hex number.\n");
+        return 0;
+    }
+    // Possibly read second argument.
+    if (argc > 2) {
+        pa_hi = strtol(hi_str, &arg_end, 16);
+        if (arg_end == hi_str) {
+            cprintf("Error: Argument <high_addr> must be a hex number.\n");
+            return 0;
+        }
+        if (pa_hi < pa_lo) {
+            cprintf("Error: Argument <high_addr> must be greater than <low_addr>\n");
+            return 0;
+        }
+    } else {
+        // Only one argument supplied.
+        pa_hi = pa_lo;
+    }
+
+    // Table header.
+    cprintf("PA          VALUE\n");
+
+    // Entries.
+    uintptr_t pa = pa_lo;
+    for (; pa <= pa_hi; pa += 4) {
+        if (PGNUM(pa) < npages) {
+            cprintf("%08p  %08p\n", pa, *(uint32_t*)KADDR(pa));
+        } else {
+            cprintf("Address out of range.\n");
         }
     }
 
