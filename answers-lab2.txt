@@ -46,4 +46,8 @@ It's not a problem that the eip is still low because the entrypgdir mapping maps
 The transition is necessary so that later kernel code which depends on the high VMA can execute properly and also so that we can later remap low virtual memory to other physical pages for user processes to use.
 
 # Challenge Problem
-TODO
+I implemented monitor three monitor utilities. They do useful things and print out help messages when used incorrectly.
+- showmappings (aliased also to sm) displays page mappings for a range of virtual addresses.
+- pgmod allows you to set the user and write permission bits of page mappings
+- memxv examines memory at virtual addresses
+- memxp examines memory at physical addresses
