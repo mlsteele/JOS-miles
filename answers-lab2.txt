@@ -8,41 +8,20 @@ char* value = return_a_pointer(); // Get a pointer (programs operate in virtual 
 x = (mystery_t) value; // Set x to the number that is a virtual address.
 
 # Question 2
-from info pg
-VPN range     Entry         Flags        Physical page
-[ef000-ef3ff]  PDE[3bc]     -------UWP
-  [ef000-ef020]  PTE[000-020] -------U-P 0011b-0013b
-[ef400-ef7ff]  PDE[3bd]     -------U-P
-  [ef7bc-ef7bc]  PTE[3bc]     -------UWP 003fd
-  [ef7bd-ef7bd]  PTE[3bd]     -------U-P 0011a
-  [ef7bf-ef7bf]  PTE[3bf]     -------UWP 003ff
-  [ef7c0-ef7d0]  PTE[3c0-3d0] ----A--UWP 003fe 003fc 003fb 003fa 003f9 003f8 ..
-  [ef7d1-ef7ff]  PTE[3d1-3ff] -------UWP 003ec 003eb 003ea 003e9 003e8 003e7 ..
-[efc00-effff]  PDE[3bf]     -------UWP
-  [efff8-effff]  PTE[3f8-3ff] --------WP 0010f-00116
-[f0000-f03ff]  PDE[3c0]     ----A--UWP
-  [f0000-f0000]  PTE[000]     --------WP 00000
-  [f0001-f009f]  PTE[001-09f] ---DA---WP 00001-0009f
-  [f00a0-f00b7]  PTE[0a0-0b7] --------WP 000a0-000b7
-  [f00b8-f00b8]  PTE[0b8]     ---DA---WP 000b8
-  [f00b9-f00ff]  PTE[0b9-0ff] --------WP 000b9-000ff
-  [f0100-f0105]  PTE[100-105] ----A---WP 00100-00105
-  [f0106-f0115]  PTE[106-115] --------WP 00106-00115
-  [f0116-f0116]  PTE[116]     ---DA---WP 00116
-  [f0117-f0118]  PTE[117-118] --------WP 00117-00118
-  [f0119-f011a]  PTE[119-11a] ---DA---WP 00119-0011a
-  [f011b-f011b]  PTE[11b]     ----A---WP 0011b
-  [f011c-f011c]  PTE[11c]     ---DA---WP 0011c
-  [f011d-f013b]  PTE[11d-13b] ----A---WP 0011d-0013b
-  [f013c-f03bd]  PTE[13c-3bd] ---DA---WP 0013c-003bd
-  [f03be-f03ff]  PTE[3be-3ff] --------WP 003be-003ff
-[f0400-f3fff]  PDE[3c1-3cf] ----A--UWP
-  [f0400-f3fff]  PTE[000-3ff] ---DA---WP 00400-03fff
-[f4000-f43ff]  PDE[3d0]     ----A--UWP
-  [f4000-f40fe]  PTE[000-0fe] ---DA---WP 04000-040fe
-  [f40ff-f43ff]  PTE[0ff-3ff] --------WP 040ff-043ff
-[f4400-fffff]  PDE[3d1-3ff] -------UWP
-  [f4400-fffff]  PTE[000-3ff] --------WP 04400-0ffff
+Information garnered from `info pg` and my `meminfo` command as well as the notes in memlayout.h and some thought.
+Entry | Base VA    | Points to (logically)
+1023  | 0xef300000 | Page table for top 4MB of phys memory
+... more and more kernel
+962   | 0xf0800000 | more kernel
+961   | 0xf0400000 | more kernel
+960   | 0xf0000000 | Bottom of the kernel, top of the kernel stack.
+959   | 0xefc00000 | Memory mapped IO
+957   | 0xef400000 | User read only virtual page table.
+956   | 0xef000000 | User read only user PageInfo list.
+... not mapped until 956
+0     | 0x00800000 | Not mapped.
+0     | 0x00400000 | Not mapped.
+0     | 0x00000000 | Not mapped.
 
 # Question 3
 We have placed the kernel and user environment in the same address space. Why will user programs not be able to read or write the kernel's memory? What specific mechanisms protect the kernel memory?
@@ -85,3 +64,4 @@ I implemented monitor three monitor utilities. They do useful things and print o
 - pgmod allows you to set the user and write permission bits of page mappings
 - memxv examines memory at virtual addresses
 - memxp examines memory at physical addresses
+- meminfo prints the values of a bunch of useful constants defined in memlayout.h
