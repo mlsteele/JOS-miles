@@ -25,6 +25,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "meminfo", "Display common memory addresses", mon_meminfo },
 	{ "backtrace", "Exit from the monitor", mon_backtrace },
 	{ "showmappings", "Show memory mappings for virtual range", mon_showmappings },
 	{ "sm", "aliased to showmappings", mon_showmappings },
@@ -60,6 +61,32 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	cprintf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
 	cprintf("Kernel executable memory footprint: %dKB\n",
 		ROUNDUP(end - entry, 1024) / 1024);
+	return 0;
+}
+
+int
+mon_meminfo(int argc, char **argv, struct Trapframe *tf)
+{
+	cprintf("Special memory addresses:\n");
+    cprintf("  KERNBASE    %08p\n", KERNBASE);
+    cprintf("  IOPHYSMEM   %08p\n", IOPHYSMEM);
+    cprintf("  EXTPHYSMEM  %08p\n", EXTPHYSMEM);
+    cprintf("  KSTACKTOP   %08p\n", KSTACKTOP);
+    cprintf("  KSTKSIZE    %08p\n", KSTKSIZE);
+    cprintf("  KSTKGAP     %08p\n", KSTKGAP);
+    cprintf("  MMIOLIM     %08p\n", MMIOLIM);
+    cprintf("  MMIOBASE    %08p\n", MMIOBASE);
+    cprintf("  ULIM        %08p\n", ULIM);
+    cprintf("  UVPT        %08p\n", UVPT);
+    cprintf("  UPAGES      %08p\n", UPAGES);
+    cprintf("  UENVS       %08p\n", UENVS);
+    cprintf("  UTOP        %08p\n", UTOP);
+    cprintf("  UXSTACKTOP  %08p\n", UXSTACKTOP);
+    cprintf("  USTACKTOP   %08p\n", USTACKTOP);
+    cprintf("  UTEXT       %08p\n", UTEXT);
+    cprintf("  UTEMP       %08p\n", UTEMP);
+    cprintf("  PFTEMP      %08p\n", PFTEMP);
+    cprintf("  USTABDATA   %08p\n", USTABDATA);
 	return 0;
 }
 
