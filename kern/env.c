@@ -116,6 +116,13 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+    int i;
+    env_free_list = NULL;
+    for (i = NENV-1; i <= 0; i--) {
+        envs[i].env_id = 0;
+        envs[i].env_link = env_free_list;
+        env_free_list = &envs[i];
+    }
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -179,6 +186,12 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+    p->pp_ref += 1;
+    e->env_pgdir = page2kva(p);
+
+    pde_t *bottom = &(e->env_pgdir)[PDX(UTOP)];
+    pde_t *top = e->env_pgdir + 1024;
+    memcpy(e->env_pgdir, bottom, top - bottom);
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -267,6 +280,18 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+    struct PageInfo *pp;
+    va = ROUNDDOWN(va, PGSIZE);
+    len = ROUNDUP(len, PGSIZE);
+    void *end = va + len;
+    for (; va < end; va += PGSIZE) {
+        if (!(pp = page_alloc(0))) {
+            panic("out of memory");
+        }
+        if (page_insert(e->env_pgdir, pp, va, PTE_U | PTE_W) < 0) {
+            panic("out of memory");
+        }
+    }
 }
 
 //
@@ -323,11 +348,13 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+    panic("implement this");
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+    panic("implement this");
 }
 
 //
@@ -341,6 +368,12 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+    struct Env *env;
+    if (env_alloc(&env, 0) < 0) {
+        panic("can't alloc new env");
+    }
+    load_icode(env, binary);
+    env->env_status = ENV_RUNNABLE;
 }
 
 //
@@ -456,7 +489,15 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+    if (curenv && curenv->env_status == ENV_RUNNING) {
+        curenv->env_status = ENV_RUNNABLE;
+    }
 
-	panic("env_run not yet implemented");
+    curenv = e;
+    e->env_status = ENV_RUNNING;
+    e->env_runs += 1;
+    lcr3(PADDR(e->env_pgdir));
+
+    env_pop_tf(&e->env_tf);
 }
 
