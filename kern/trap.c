@@ -25,6 +25,25 @@ struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
 
+extern void trap_DIVIDE();  // divide error
+extern void trap_DEBUG();   // debug exception
+extern void trap_NMI();     // non-maskable interrupt
+extern void trap_BRKPT();   // breakpoint
+extern void trap_OFLOW();   // overflow
+extern void trap_BOUND();   // bounds check
+extern void trap_ILLOP();   // illegal opcode
+extern void trap_DEVICE();  // device not available
+extern void trap_DBLFLT();  // double fault
+extern void trap_TSS();     // invalid task switch segment
+extern void trap_SEGNP();   // segment not present
+extern void trap_STACK();   // stack exception
+extern void trap_GPFLT();   // general protection fault
+extern void trap_PGFLT();   // page fault
+extern void trap_FPERR();   // floating point error
+extern void trap_ALIGN();   // aligment check
+extern void trap_MCHK();    // machine check
+extern void trap_SIMDERR(); // SIMD floating point error
+
 
 static const char *trapname(int trapno)
 {
@@ -65,6 +84,24 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+    SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_DIVIDE, 0);
+    SETGATE(idt[T_DEBUG], 1, GD_KT, trap_DEBUG, 0);
+    SETGATE(idt[T_NMI], 1, GD_KT, trap_NMI, 0);
+    SETGATE(idt[T_BRKPT], 1, GD_KT, trap_BRKPT, 0);
+    SETGATE(idt[T_OFLOW], 1, GD_KT, trap_OFLOW, 0);
+    SETGATE(idt[T_BOUND], 1, GD_KT, trap_BOUND, 0);
+    SETGATE(idt[T_ILLOP], 1, GD_KT, trap_ILLOP, 0);
+    SETGATE(idt[T_DEVICE], 1, GD_KT, trap_DEVICE, 0);
+    SETGATE(idt[T_DBLFLT], 1, GD_KT, trap_DBLFLT, 0);
+    SETGATE(idt[T_TSS], 1, GD_KT, trap_TSS, 0);
+    SETGATE(idt[T_SEGNP], 1, GD_KT, trap_SEGNP, 0);
+    SETGATE(idt[T_STACK], 1, GD_KT, trap_STACK, 0);
+    SETGATE(idt[T_GPFLT], 1, GD_KT, trap_GPFLT, 0);
+    SETGATE(idt[T_PGFLT], 1, GD_KT, trap_PGFLT, 0);
+    SETGATE(idt[T_FPERR], 1, GD_KT, trap_FPERR, 0);
+    SETGATE(idt[T_ALIGN], 1, GD_KT, trap_ALIGN, 0);
+    SETGATE(idt[T_MCHK], 1, GD_KT, trap_MCHK, 0);
+    SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_SIMDERR, 0);
 
 	// Per-CPU setup 
 	trap_init_percpu();
