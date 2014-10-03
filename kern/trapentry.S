@@ -52,4 +52,35 @@
 /*
  * Lab 3: Your code here for _alltraps
  */
+_alltraps:
 
+    ; construct Trapframe on stack
+	; 32 reg_edi
+	; 32 reg_esi
+	; 32 reg_ebp
+	; 32 reg_oesp
+	; 32 reg_ebx
+	; 32 reg_edx
+	; 32 reg_ecx
+	; 32 reg_eax
+	; 16 tf_es
+	; 16 tf_padding1
+	; 16 tf_ds
+	; 16 tf_padding2
+	; 32 tf_trapno
+	; 32 tf_err
+	; 32 tf_eip
+	; 16 tf_cs
+	; 16 tf_padding3
+	; 32 tf_eflags
+	; 32 tf_esp
+	; 16 tf_ss
+	; 16 tf_padding4
+    ; put GD_KD (kernel data) into ds and es segment regs
+    GD_KD %ds
+    GD_KD %es
+    ; pass pointer to Trapframe as C arg.
+    pushl %esp
+    ; call trap
+    call trap
+    ; TODO can trap ever return?
