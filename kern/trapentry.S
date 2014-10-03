@@ -46,41 +46,57 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
-
+TRAPHANDLER_NOEC(trap_DIVIDE, T_DIVIDE)    // divide error
+TRAPHANDLER_NOEC(trap_DEBUG, T_DEBUG)      // debug exception
+TRAPHANDLER_NOEC(trap_NMI, T_NMI)          // non-maskable interrupt
+TRAPHANDLER_NOEC(trap_BRKPT, T_BRKPT)      // breakpoint
+TRAPHANDLER_NOEC(trap_OFLOW, T_OFLOW)      // overflow
+TRAPHANDLER_NOEC(trap_BOUND, T_BOUND)      // bounds check
+TRAPHANDLER_NOEC(trap_ILLOP, T_ILLOP)      // illegal opcode
+TRAPHANDLER_NOEC(trap_DEVICE, T_DEVICE)    // device not available
+TRAPHANDLER(trap_DBLFLT, T_DBLFLT)         // double fault
+TRAPHANDLER(trap_TSS, T_TSS)               // invalid task switch segment
+TRAPHANDLER(trap_SEGNP, T_SEGNP)           // segment not present
+TRAPHANDLER(trap_STACK, T_STACK)           // stack exception
+TRAPHANDLER(trap_GPFLT, T_GPFLT)           // general protection fault
+TRAPHANDLER(trap_PGFLT, T_PGFLT)           // page fault
+TRAPHANDLER_NOEC(trap_FPERR, T_FPERR)      // floating point error
+TRAPHANDLER(trap_ALIGN, T_ALIGN)           // aligment check
+TRAPHANDLER_NOEC(trap_MCHK, T_MCHK)        // machine check
+TRAPHANDLER_NOEC(trap_SIMDERR, T_SIMDERR)  // SIMD floating point error
 
 
 /*
  * Lab 3: Your code here for _alltraps
  */
 _alltraps:
+    // construct Trapframe on stack
+    // this is the structure of Trapframe
+    // 32 reg_edi,   reg_esi,     reg_ebp, reg_oesp
+    // 32 reg_ebx,   reg_edx,     reg_ecx, reg_eax
+    // 16 tf_es,     tf_padding1, tf_ds,   tf_padding2
+    // 32 tf_trapno, tf_err,      tf_eip
+    // 16 tf_cs,     tf_padding3
+    // 32 tf_eflags, tf_esp
+    // 16 tf_ss,     tf_padding4
 
-    ; construct Trapframe on stack
-	; 32 reg_edi
-	; 32 reg_esi
-	; 32 reg_ebp
-	; 32 reg_oesp
-	; 32 reg_ebx
-	; 32 reg_edx
-	; 32 reg_ecx
-	; 32 reg_eax
-	; 16 tf_es
-	; 16 tf_padding1
-	; 16 tf_ds
-	; 16 tf_padding2
-	; 32 tf_trapno
-	; 32 tf_err
-	; 32 tf_eip
-	; 16 tf_cs
-	; 16 tf_padding3
-	; 32 tf_eflags
-	; 32 tf_esp
-	; 16 tf_ss
-	; 16 tf_padding4
-    ; put GD_KD (kernel data) into ds and es segment regs
-    GD_KD %ds
-    GD_KD %es
-    ; pass pointer to Trapframe as C arg.
+    // 32 tf_trapno
+    // TODO heuh?
+    // 16 tf_padding2
+    // 16 tf_ds
+    pushl %ds
+    // 16 tf_padding1
+    // 16 tf_es
+    pushl %es
+    // pusha pushes these: A, C, D, B, S, B, S, D
+    pushal
+
+    // put GD_KD (kernel data) into ds and es segment regs
+    movw $GD_KD, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    // pass pointer to Trapframe as C arg.
     pushl %esp
-    ; call trap
+    // call trap
     call trap
-    ; TODO can trap ever return?
+    // TODO can trap ever return?
