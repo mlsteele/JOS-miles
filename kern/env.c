@@ -116,9 +116,10 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+    cprintf("TRACE: env init\n");
     int i;
     env_free_list = NULL;
-    for (i = NENV-1; i <= 0; i--) {
+    for (i = NENV-1; i >= 0; i--) {
         envs[i].env_id = 0;
         envs[i].env_link = env_free_list;
         env_free_list = &envs[i];
@@ -126,6 +127,8 @@ env_init(void)
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
+
+    assert(env_free_list != NULL);
 }
 
 // Load GDT and segment descriptors.
@@ -356,24 +359,25 @@ load_icode(struct Env *e, uint8_t *binary)
 
     // for each section in the elf
 	for (; ph < eph; ph++) {
-        // allocate pages
-        region_alloc(e, (void*)ph->p_va, ph->p_memsz);
-        // copy stuff
-        memcpy((void*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
-        // zero the rest
-        memset((void*)ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+        if (ph->p_type == ELF_PROG_LOAD) {
+            // allocate pages
+            region_alloc(e, (void*)ph->p_va, ph->p_memsz);
+            // copy stuff
+            memcpy((void*)ph->p_va, binary + ph->p_offset, ph->p_filesz);
+            // zero the rest
+            memset((void*)ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+        }
     }
     lcr3(PADDR(kern_pgdir));
-
-    /* e->tf->eip = elfhdr->e_entry; */
-
-    panic("implement this");
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+    // allocate stack
     region_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
+    // Tank, start the jump program.
+    e->env_tf.tf_eip = elfhdr->e_entry;
 }
 
 //
@@ -388,11 +392,15 @@ env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
     struct Env *env;
-    if (env_alloc(&env, 0) < 0) {
-        panic("can't alloc new env");
+    cprintf("TRACE: running env_create %p\n", env_free_list);
+    int result = env_alloc(&env, 0);
+    if (result < 0) {
+        panic("can't alloc new env: %e", result);
     }
+    env->env_parent_id = 0;
+    env->env_type = type;
     load_icode(env, binary);
-    env->env_status = ENV_RUNNABLE;
+    // env->env_status = ENV_RUNNABLE;
 }
 
 //
@@ -508,6 +516,7 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+    cprintf("TRACE: env_run");
     if (curenv && curenv->env_status == ENV_RUNNING) {
         curenv->env_status = ENV_RUNNABLE;
     }
