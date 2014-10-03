@@ -116,7 +116,6 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
-    cprintf("TRACE: env init\n");
     int i;
     env_free_list = NULL;
     for (i = NENV-1; i >= 0; i--) {
@@ -402,7 +401,6 @@ env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
     struct Env *env;
-    cprintf("TRACE: running env_create %p\n", env_free_list);
     int result = env_alloc(&env, 0);
     if (result < 0) {
         panic("can't alloc new env: %e", result);
@@ -411,7 +409,6 @@ env_create(uint8_t *binary, enum EnvType type)
     env->env_type = type;
     load_icode(env, binary);
     // env->env_status = ENV_RUNNABLE;
-    cprintf("TRACE: leaving env_create %p\n", env_free_list);
 }
 
 //
@@ -527,7 +524,6 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-    cprintf("TRACE: env_run\n");
     if (curenv && curenv->env_status == ENV_RUNNING) {
         curenv->env_status = ENV_RUNNABLE;
     }
