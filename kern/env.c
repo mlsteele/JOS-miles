@@ -192,9 +192,12 @@ env_setup_vm(struct Env *e)
     p->pp_ref += 1;
     e->env_pgdir = page2kva(p);
 
-    pde_t *bottom = &(e->env_pgdir)[PDX(UTOP)];
-    pde_t *top = e->env_pgdir + 1024;
-    memcpy(e->env_pgdir, bottom, top - bottom);
+    // pde_t *bottom = &(e->env_pgdir)[PDX(UTOP)];
+    // pde_t *top = e->env_pgdir + 1024;
+    // memcpy(e->env_pgdir, bottom, top - bottom);
+    for (i = PDX(UTOP); i < NPDENTRIES; i++) {
+        e->env_pgdir[i] = kern_pgdir[i];
+    }
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -376,6 +379,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	// LAB 3: Your code here.
     // allocate stack
     region_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
+    e->env_tf.tf_esp = USTACKTOP;
     // Tank, start the jump program.
     e->env_tf.tf_eip = elfhdr->e_entry;
 }
@@ -401,6 +405,7 @@ env_create(uint8_t *binary, enum EnvType type)
     env->env_type = type;
     load_icode(env, binary);
     // env->env_status = ENV_RUNNABLE;
+    cprintf("TRACE: leaving env_create %p\n", env_free_list);
 }
 
 //
@@ -516,7 +521,7 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-    cprintf("TRACE: env_run");
+    cprintf("TRACE: env_run\n");
     if (curenv && curenv->env_status == ENV_RUNNING) {
         curenv->env_status = ENV_RUNNABLE;
     }
