@@ -357,6 +357,11 @@ load_icode(struct Env *e, uint8_t *binary)
     lcr3(PADDR(e->env_pgdir));
 
     struct Elf* elfhdr = (struct Elf*) binary;
+
+    if (elfhdr->e_magic != ELF_MAGIC) {
+        panic("binary does not have elf magic");
+    }
+
     struct Proghdr *ph = (struct Proghdr *) ((uint8_t *) elfhdr + elfhdr->e_phoff);
 	struct Proghdr *eph = ph + elfhdr->e_phnum;
 
@@ -379,6 +384,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	// LAB 3: Your code here.
     // allocate stack
     region_alloc(e, (void*)(USTACKTOP - PGSIZE), PGSIZE);
+    // TODO also load flags and stuff?
     e->env_tf.tf_esp = USTACKTOP;
     // Tank, start the jump program.
     e->env_tf.tf_eip = elfhdr->e_entry;
