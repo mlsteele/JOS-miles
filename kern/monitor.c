@@ -33,6 +33,7 @@ static struct Command commands[] = {
 	{ "pgmod", "Change permission of page mappings", mon_pgmod },
 	{ "memxv", "Examine a range of virtual memory", mon_memxv },
 	{ "memxp", "Examine a range of physical memory", mon_memxp },
+	{ "colortest", "Test the screens color output", mon_colortest },
 	{ "exit", "Exit from the monitor", mon_exit },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
@@ -386,6 +387,14 @@ mon_memxp(int argc, char **argv, struct Trapframe *tf)
         }
     }
 
+    return 0;
+}
+
+int
+mon_colortest(int argc, char **argv, struct Trapframe *tf)
+{
+    cprintf("colortest...\n");
+    cga_colortest();
     return 0;
 }
 

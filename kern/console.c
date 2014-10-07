@@ -128,6 +128,15 @@ lpt_putc(int c)
 static unsigned addr_6845;
 static uint16_t *crt_buf;
 static uint16_t crt_pos;
+static uint8_t crt_color_mask = 0x00; // white on black
+
+static uint16_t crt_color_advance() {
+    uint8_t c = crt_color_mask;
+    crt_color_mask += 1;
+    if (crt_color_mask > 0x0f)
+        crt_color_mask = 0x01;
+    return (c << 8);
+}
 
 static void
 cga_init(void)
@@ -164,7 +173,8 @@ cga_putc(int c)
 {
 	// if no attribute given, then use black on white
 	if (!(c & ~0xFF))
-		c |= 0x0700;
+		c |= crt_color_advance();
+		// c |= 0x0700;
 
 	switch (c & 0xff) {
 	case '\b':
@@ -206,6 +216,16 @@ cga_putc(int c)
 	outb(addr_6845 + 1, crt_pos >> 8);
 	outb(addr_6845, 15);
 	outb(addr_6845 + 1, crt_pos);
+}
+
+void
+cga_colortest()
+{
+    uint16_t c;
+    for(c = 0; c <= 0xff; c++) {
+        cga_putc('a' | (c << 8));
+    }
+    cga_putc('\n');
 }
 
 
