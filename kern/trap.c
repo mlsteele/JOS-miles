@@ -87,7 +87,7 @@ trap_init(void)
     SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_DIVIDE, 0);
     SETGATE(idt[T_DEBUG], 1, GD_KT, trap_DEBUG, 0);
     SETGATE(idt[T_NMI], 1, GD_KT, trap_NMI, 0);
-    SETGATE(idt[T_BRKPT], 1, GD_KT, trap_BRKPT, 0);
+    SETGATE(idt[T_BRKPT], 1, GD_KT, trap_BRKPT, 3);
     SETGATE(idt[T_OFLOW], 1, GD_KT, trap_OFLOW, 0);
     SETGATE(idt[T_BOUND], 1, GD_KT, trap_BOUND, 0);
     SETGATE(idt[T_ILLOP], 1, GD_KT, trap_ILLOP, 0);
@@ -183,6 +183,10 @@ trap_dispatch(struct Trapframe *tf)
     switch (tf->tf_trapno){
         case T_PGFLT:
             page_fault_handler(tf);
+            return;
+        case T_BRKPT:
+            print_trapframe(tf);
+            monitor(NULL);
             return;
     }
 
