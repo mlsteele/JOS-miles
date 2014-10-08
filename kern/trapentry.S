@@ -80,34 +80,7 @@ TRAPHANDLER_NOEC(trap_FPERR, T_FPERR)      // floating point error
 TRAPHANDLER(trap_ALIGN, T_ALIGN)           // aligment check
 TRAPHANDLER_NOEC(trap_MCHK, T_MCHK)        // machine check
 TRAPHANDLER_NOEC(trap_SIMDERR, T_SIMDERR)  // SIMD floating point error
-.long 0 // 20
-.long 0 // 21
-.long 0 // 22
-.long 0 // 23
-.long 0 // 24
-.long 0 // 25
-.long 0 // 26
-.long 0 // 27
-.long 0 // 28
-.long 0 // 29
-.long 0 // 30
-.long 0 // 31
-.long 0 // 32
-.long 0 // 33
-.long 0 // 34
-.long 0 // 35
-.long 0 // 36
-.long 0 // 37
-.long 0 // 38
-.long 0 // 39
-.long 0 // 40
-.long 0 // 41
-.long 0 // 42
-.long 0 // 43
-.long 0 // 44
-.long 0 // 45
-.long 0 // 46
-.long 0 // 47
+.space 28*4 // 20 through 47
 TRAPHANDLER_NOEC(trap_SYSCALL, T_SYSCALL)  // JOS system call
 
 
