@@ -188,6 +188,10 @@ trap_dispatch(struct Trapframe *tf)
             monitor(NULL);
             return;
         case T_PGFLT:
+            if ((tf->tf_cs & 3) != 3) {
+                // page fault from kernel
+                panic("Page fault triggered in kernel");
+            }
             page_fault_handler(tf);
             return;
         case T_SYSCALL:
