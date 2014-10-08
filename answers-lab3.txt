@@ -13,3 +13,9 @@ Descriptor Privilege Level is one of the arguments to the SETGATE macro we use t
 
 # Question 4
 The point of the DPL and General Protection Fault interface is to disallow user programs for simulating interrupts that should not be allowed. Some interrupts should be reserved for the kernel or hardware to fire. The example in softint is interrupt 14, the page fault interrupt. If a user program were able to trigger this, it could mess with it's page table in ways that it should not be able to.
+
+# Challenge Problem
+I eliminated some of the repetition around setting up the trap handler.  This involved modifying trapentry.S and trap.c. I added text/data commands to the macros so that they lay down both code for handling the trap as well as a simple data line that points to the entry point for that handler. Then when I 'call' the macros, it's after a declaration for an address 'trap_handlers'. Then in trap.c I need only declare
+    extern uint32_t trap_handlers[];
+instead of having a declaration for each handler. I use T_WHATEVER to index into trap_handlers, and added spacing in trapentry.S to make up for breaks in numbers of the T_DEFINES. This reduced the number of repetitive lines quite a bit but added a bit of wasted memory (not enough to care) as a result of trapentry.S and more importantly a gross dependency between the spaces reserved in trap_handlers and the actual values of the T_DEFINES. A small loop in trap.c takes care of setting up most of the traps which have DPL 0 and then 2 lines below it overwrite those that need DPL 3.
+I couldn't figure out how to use conditionals in macros to consolidate the two //_noec macros into one, but that would've been nice too.
