@@ -21,6 +21,7 @@
  * where NAME is the argument passed to TRAPHANDLER.
  */
 #define TRAPHANDLER(name, num) ;\
+  .text ;\
     .globl name ;\
     /* symbol type is function */ ;\
     .type name, @function ;\
@@ -29,20 +30,25 @@
     /* function starts here */ ;\
     name: ;\
     pushl $(num) ;\
-    jmp _alltraps
+    jmp _alltraps ;\
+  .data ;\
+    .long name
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
  * format in either case.
  */
 #define TRAPHANDLER_NOEC(name, num) ;\
+  .text ;\
     .globl name ;\
     .type name, @function ;\
     .align 2 ;\
     name: ;\
     pushl $0 ;\
     pushl $(num) ;\
-    jmp _alltraps
+    jmp _alltraps ;\
+  .data ;\
+    .long name
 
 .text
 
@@ -51,6 +57,9 @@
  * See http://pdosnew.csail.mit.edu/6.828/2014/readings/ia32/IA32-3A.pdf
  * page 185 for a table of which interrupts have error code.
  */
+.data
+.globl trap_handlers
+trap_handlers:
 TRAPHANDLER_NOEC(trap_DIVIDE, T_DIVIDE)    // divide error
 TRAPHANDLER_NOEC(trap_DEBUG, T_DEBUG)      // debug exception
 TRAPHANDLER_NOEC(trap_NMI, T_NMI)          // non-maskable interrupt
@@ -60,15 +69,45 @@ TRAPHANDLER_NOEC(trap_BOUND, T_BOUND)      // bounds check
 TRAPHANDLER_NOEC(trap_ILLOP, T_ILLOP)      // illegal opcode
 TRAPHANDLER_NOEC(trap_DEVICE, T_DEVICE)    // device not available
 TRAPHANDLER(trap_DBLFLT, T_DBLFLT)         // double fault
+.long 0 // 9
 TRAPHANDLER(trap_TSS, T_TSS)               // invalid task switch segment
 TRAPHANDLER(trap_SEGNP, T_SEGNP)           // segment not present
 TRAPHANDLER(trap_STACK, T_STACK)           // stack exception
 TRAPHANDLER(trap_GPFLT, T_GPFLT)           // general protection fault
 TRAPHANDLER(trap_PGFLT, T_PGFLT)           // page fault
+TRAPHANDLER(trap_NOOP, 15)
 TRAPHANDLER_NOEC(trap_FPERR, T_FPERR)      // floating point error
 TRAPHANDLER(trap_ALIGN, T_ALIGN)           // aligment check
 TRAPHANDLER_NOEC(trap_MCHK, T_MCHK)        // machine check
 TRAPHANDLER_NOEC(trap_SIMDERR, T_SIMDERR)  // SIMD floating point error
+.long 0 // 20
+.long 0 // 21
+.long 0 // 22
+.long 0 // 23
+.long 0 // 24
+.long 0 // 25
+.long 0 // 26
+.long 0 // 27
+.long 0 // 28
+.long 0 // 29
+.long 0 // 30
+.long 0 // 31
+.long 0 // 32
+.long 0 // 33
+.long 0 // 34
+.long 0 // 35
+.long 0 // 36
+.long 0 // 37
+.long 0 // 38
+.long 0 // 39
+.long 0 // 40
+.long 0 // 41
+.long 0 // 42
+.long 0 // 43
+.long 0 // 44
+.long 0 // 45
+.long 0 // 46
+.long 0 // 47
 TRAPHANDLER_NOEC(trap_SYSCALL, T_SYSCALL)  // JOS system call
 
 
