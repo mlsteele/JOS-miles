@@ -25,26 +25,6 @@ struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
 
-extern void trap_DIVIDE();  // divide error
-extern void trap_DEBUG();   // debug exception
-extern void trap_NMI();     // non-maskable interrupt
-extern void trap_BRKPT();   // breakpoint
-extern void trap_OFLOW();   // overflow
-extern void trap_BOUND();   // bounds check
-extern void trap_ILLOP();   // illegal opcode
-extern void trap_DEVICE();  // device not available
-extern void trap_DBLFLT();  // double fault
-extern void trap_TSS();     // invalid task switch segment
-extern void trap_SEGNP();   // segment not present
-extern void trap_STACK();   // stack exception
-extern void trap_GPFLT();   // general protection fault
-extern void trap_PGFLT();   // page fault
-extern void trap_FPERR();   // floating point error
-extern void trap_ALIGN();   // aligment check
-extern void trap_MCHK();    // machine check
-extern void trap_SIMDERR(); // SIMD floating point error
-extern void trap_SYSCALL(); // JOS system call
-
 
 static const char *trapname(int trapno)
 {
@@ -85,6 +65,26 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+    extern void trap_DIVIDE();  // divide error
+    extern void trap_DEBUG();   // debug exception
+    extern void trap_NMI();     // non-maskable interrupt
+    extern void trap_BRKPT();   // breakpoint
+    extern void trap_OFLOW();   // overflow
+    extern void trap_BOUND();   // bounds check
+    extern void trap_ILLOP();   // illegal opcode
+    extern void trap_DEVICE();  // device not available
+    extern void trap_DBLFLT();  // double fault
+    extern void trap_TSS();     // invalid task switch segment
+    extern void trap_SEGNP();   // segment not present
+    extern void trap_STACK();   // stack exception
+    extern void trap_GPFLT();   // general protection fault
+    extern void trap_PGFLT();   // page fault
+    extern void trap_FPERR();   // floating point error
+    extern void trap_ALIGN();   // aligment check
+    extern void trap_MCHK();    // machine check
+    extern void trap_SIMDERR(); // SIMD floating point error
+    extern void trap_SYSCALL(); // JOS system call
+
     SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_DIVIDE, 0);
     SETGATE(idt[T_DEBUG], 1, GD_KT, trap_DEBUG, 0);
     SETGATE(idt[T_NMI], 1, GD_KT, trap_NMI, 0);
