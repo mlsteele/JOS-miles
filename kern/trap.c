@@ -43,6 +43,7 @@ extern void trap_FPERR();   // floating point error
 extern void trap_ALIGN();   // aligment check
 extern void trap_MCHK();    // machine check
 extern void trap_SIMDERR(); // SIMD floating point error
+extern void trap_SYSCALL(); // JOS system call
 
 
 static const char *trapname(int trapno)
@@ -102,6 +103,7 @@ trap_init(void)
     SETGATE(idt[T_ALIGN], 1, GD_KT, trap_ALIGN, 0);
     SETGATE(idt[T_MCHK], 1, GD_KT, trap_MCHK, 0);
     SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_SIMDERR, 0);
+    SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_SYSCALL, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -181,12 +183,25 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
     switch (tf->tf_trapno){
-        case T_PGFLT:
-            page_fault_handler(tf);
-            return;
         case T_BRKPT:
             print_trapframe(tf);
             monitor(NULL);
+            return;
+        case T_PGFLT:
+            page_fault_handler(tf);
+            return;
+        case T_SYSCALL:
+            // The system call number will go in %eax,
+            // and the arguments (up to five of them) will go in
+            // %edx, %ecx, %ebx, %edi, and %esi, respectively.
+            // The kernel passes the return value back in %eax. 
+            tf->tf_regs.reg_eax = syscall(
+                tf->tf_regs.reg_eax,
+                tf->tf_regs.reg_edx,
+                tf->tf_regs.reg_ecx,
+                tf->tf_regs.reg_ebx,
+                tf->tf_regs.reg_edi,
+                tf->tf_regs.reg_esi);
             return;
     }
 

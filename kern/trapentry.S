@@ -45,6 +45,8 @@
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
+ * See http://pdosnew.csail.mit.edu/6.828/2014/readings/ia32/IA32-3A.pdf
+ * page 185 for a table of which interrupts have error code.
  */
 TRAPHANDLER_NOEC(trap_DIVIDE, T_DIVIDE)    // divide error
 TRAPHANDLER_NOEC(trap_DEBUG, T_DEBUG)      // debug exception
@@ -64,6 +66,7 @@ TRAPHANDLER_NOEC(trap_FPERR, T_FPERR)      // floating point error
 TRAPHANDLER(trap_ALIGN, T_ALIGN)           // aligment check
 TRAPHANDLER_NOEC(trap_MCHK, T_MCHK)        // machine check
 TRAPHANDLER_NOEC(trap_SIMDERR, T_SIMDERR)  // SIMD floating point error
+TRAPHANDLER_NOEC(trap_SYSCALL, T_SYSCALL)  // JOS system call
 
 
 /*
