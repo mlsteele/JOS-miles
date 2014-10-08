@@ -67,24 +67,14 @@ trap_init(void)
 	// LAB 3: Your code here.
     extern uint32_t trap_handlers[];
 
-    SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_handlers[T_DIVIDE], 0);
-    SETGATE(idt[T_DEBUG], 1, GD_KT, trap_handlers[T_DEBUG], 0);
-    SETGATE(idt[T_NMI], 1, GD_KT, trap_handlers[T_NMI], 0);
+    // Setup mappings from the lowest to highest known trap number.
+    // Most traps have DPL 0, so traps with other DPLs go below loop.
+    int i;
+    for (i = T_DIVIDE; i <= T_SYSCALL; i++) {
+        SETGATE(idt[i], 1, GD_KT, trap_handlers[i], 0);
+    }
+
     SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handlers[T_BRKPT], 3);
-    SETGATE(idt[T_OFLOW], 1, GD_KT, trap_handlers[T_OFLOW], 0);
-    SETGATE(idt[T_BOUND], 1, GD_KT, trap_handlers[T_BOUND], 0);
-    SETGATE(idt[T_ILLOP], 1, GD_KT, trap_handlers[T_ILLOP], 0);
-    SETGATE(idt[T_DEVICE], 1, GD_KT, trap_handlers[T_DEVICE], 0);
-    SETGATE(idt[T_DBLFLT], 1, GD_KT, trap_handlers[T_DBLFLT], 0);
-    SETGATE(idt[T_TSS], 1, GD_KT, trap_handlers[T_TSS], 0);
-    SETGATE(idt[T_SEGNP], 1, GD_KT, trap_handlers[T_SEGNP], 0);
-    SETGATE(idt[T_STACK], 1, GD_KT, trap_handlers[T_STACK], 0);
-    SETGATE(idt[T_GPFLT], 1, GD_KT, trap_handlers[T_GPFLT], 0);
-    SETGATE(idt[T_PGFLT], 1, GD_KT, trap_handlers[T_PGFLT], 0);
-    SETGATE(idt[T_FPERR], 1, GD_KT, trap_handlers[T_FPERR], 0);
-    SETGATE(idt[T_ALIGN], 1, GD_KT, trap_handlers[T_ALIGN], 0);
-    SETGATE(idt[T_MCHK], 1, GD_KT, trap_handlers[T_MCHK], 0);
-    SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_handlers[T_SIMDERR], 0);
     SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_handlers[T_SYSCALL], 3);
 
 	// Per-CPU setup 
