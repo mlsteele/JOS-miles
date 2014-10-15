@@ -332,11 +332,13 @@ page_init(void)
         bool page_0 = i == 0;
         // The IO hole [IOPHYSMEM, EXTPHYSMEM]
         bool io_hole = IOPHYSMEM <= paddr && paddr <= EXTPHYSMEM;
+        // Multi-processor entry code
+        bool mp_entry = paddr == MPENTRY_PADDR;
         // Don't clobber the stuff allocated by boot_alloc.
         bool boot_used = EXTPHYSMEM < paddr && paddr < boot_heap_end;
 
         // not free pages
-        if (page_0 || io_hole || boot_used) {
+        if (page_0 || io_hole || boot_used || mp_entry) {
             pages[i].pp_ref = 1;
             pages[i].pp_link = NULL;
         } else {
@@ -641,7 +643,19 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+
+    size_t size_round = ROUNDUP(size, PGSIZE);
+    int perm = PTE_W | PTE_PCD | PTE_PWT;
+    uintptr_t old_base = base;
+
+    if (base + size_round > MMIOLIM) {
+        panic("Ran out of MMIO space");
+    }
+
+    boot_map_region(kern_pgdir, base, size_round, pa, perm);
+    base += size_round;
+
+    return (void*)old_base;
 }
 
 static uintptr_t user_mem_check_addr;
@@ -774,6 +788,8 @@ check_page_free_list(bool only_low_memory)
 
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
+
+	cprintf("check_page_free_list() succeeded!\n");
 }
 
 //
