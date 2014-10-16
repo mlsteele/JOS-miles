@@ -298,14 +298,15 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
     struct PageInfo *pp;
-    va = ROUNDDOWN(va, PGSIZE);
-    len = ROUNDUP(len, PGSIZE);
-    void *end = va + len;
-    for (; va < end; va += PGSIZE) {
+    void *start = ROUNDDOWN(va, PGSIZE);
+    void *end = ROUNDUP(va + len, PGSIZE);
+
+    for (; start < end; start += PGSIZE) {
         if (!(pp = page_alloc(0))) {
             panic("out of memory");
         }
-        if (page_insert(e->env_pgdir, pp, va, PTE_U | PTE_W) < 0) {
+
+        if (page_insert(e->env_pgdir, pp, start, PTE_U | PTE_W) < 0) {
             panic("out of memory");
         }
     }
