@@ -1,5 +1,23 @@
 # Question 1
 Compare kern/mpentry.S side by side with boot/boot.S. Bearing in mind that kern/mpentry.S is compiled and linked to run above KERNBASE just like everything else in the kernel, what is the purpose of macro MPBOOTPHYS? Why is it necessary in kern/mpentry.S but not in boot/boot.S? In other words, what could go wrong if it were omitted in kern/mpentry.S? 
-Hint: recall the differences between the link address and the load address that we have discussed in Lab 1.
 
-TODO
+MPBOOTPHYS = (s) -> s - mpentry_start + MPENTRY_PADDR
+
+kern/init.c:boot_aps
+	// Write entry code to unused memory at MPENTRY_PADDR
+	code = KADDR(MPENTRY_PADDR);
+	memmove(code, mpentry_start, mpentry_end - mpentry_start);
+
+MPBOOTPHYS is a macro used to translate an symbol offset within the assembly file into a correct runtime address.
+In boot_aps there are three lines which the code from kern/mpentry.s into MPENTRY_PADDR.
+Because MPENTRY_PADDR is not the VMA, the introspective offsets in mpentry.S would be wrong.
+But since they are all run the MPENTRY_PADDR, then the offsets are correct assuming mpentry_start executes at MPENTRY_PADDR.
+The introspective points in the mpentry sequence are:
+- Loading the gdt
+	lgdt    MPBOOTPHYS(gdtdesc)
+- Switching to 32 bit mode
+	ljmpl   $(PROT_MODE_CSEG), $(MPBOOTPHYS(start32))
+- Describing the gdt
+	.long   MPBOOTPHYS(gdt)			# address gdt
+
+The translation is not necessary in boot/boot.S because the VMA and runtime execution address are actually the same, so the linker properly calculates offsets.
