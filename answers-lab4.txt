@@ -21,3 +21,8 @@ The introspective points in the mpentry sequence are:
 	.long   MPBOOTPHYS(gdt)			# address gdt
 
 The translation is not necessary in boot/boot.S because the VMA and runtime execution address are actually the same, so the linker properly calculates offsets.
+
+# Question 2
+It seems that using the big kernel lock guarantees that only one CPU can run the kernel code at a time. Why do we still need separate kernel stacks for each CPU? Describe a scenario in which using a shared kernel stack will go wrong, even with the protection of the big kernel lock.
+
+TODO answaer question.k maybe something to do with trap assembly pushing stuff to stack.
