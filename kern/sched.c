@@ -29,9 +29,27 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+    int i_base;
 
-	// sched_halt never returns
-	sched_halt();
+    if (curenv == NULL) {
+        i_base = 0;
+    } else {
+        i_base = ENVX(curenv->env_id) + 1;
+    }
+
+    int i_linear;
+    for (i_linear = 0; i_linear < NENV + 1; i_linear++) {
+        int i;
+        i = (i_base + i_linear) % NENV;
+        /* cprintf("cpu[%d] schedule considering %d (id %d) (runs %dnc)\n", cpunum(), i, envs[i].env_id, envs[i].env_runs); */
+        if (envs[i].env_status == ENV_RUNNABLE) {
+            /* cprintf("CHOOSE %d\n", i); */
+            env_run(&envs[i]);
+        }
+    }
+
+    // sched_halt never returns
+    sched_halt();
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
