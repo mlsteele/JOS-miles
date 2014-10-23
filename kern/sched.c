@@ -37,10 +37,12 @@ sched_yield(void)
         i_base = ENVX(curenv->env_id) + 1;
     }
 
+    // TODO bug should be going circ-1 not circ+1 or something like that.
+    // TODO bug should run current proc regardless of status.
+
     int i_linear;
     for (i_linear = 0; i_linear < NENV + 1; i_linear++) {
-        int i;
-        i = (i_base + i_linear) % NENV;
+        int i = (i_base + i_linear) % NENV;
         /* cprintf("cpu[%d] schedule considering %d (id %d) (runs %dnc)\n", cpunum(), i, envs[i].env_id, envs[i].env_runs); */
         if (envs[i].env_status == ENV_RUNNABLE) {
             /* cprintf("CHOOSE %d\n", i); */
