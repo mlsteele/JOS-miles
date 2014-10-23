@@ -27,7 +27,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "meminfo", "Display common memory addresses", mon_meminfo },
-	{ "backtrace", "Exit from the monitor", mon_backtrace },
+	{ "backtrace", "Show a backtrace", mon_backtrace },
 	{ "showmappings", "Show memory mappings for virtual range", mon_showmappings },
 	{ "sm", "aliased to showmappings", mon_showmappings },
 	{ "pgmod", "Change permission of page mappings", mon_pgmod },
