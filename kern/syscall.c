@@ -114,7 +114,22 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+    struct Env *env;
+
+    cprintf("env_set_status requsted by pid:%d\n", curenv->env_id);
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+
+    if (!(status == ENV_FREE ||
+          status == ENV_DYING ||
+          status == ENV_RUNNABLE ||
+          status == ENV_RUNNING ||
+          status == ENV_NOT_RUNNABLE))
+    {
+        return -E_INVAL;
+    }
+
+    env->env_status = status;
+    return 0;
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -271,7 +286,18 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+
+    struct Env *env;
+
+    cprintf("page_unmap requsted by pid:%d\n", curenv->env_id);
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+
+    // Check va
+    if (va >= (void*)UTOP) return -E_INVAL;
+    if ((uintptr_t)va % PGSIZE != 0) return -E_INVAL;
+
+    page_remove(env->env_pgdir, va);
+    return 0;
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -366,9 +392,15 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_page_map:
             // int sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int perm)
             return sys_page_map((envid_t)a1, (void*)a2, (envid_t)a3, (void*)a4, (int)a5);
+        case SYS_page_unmap:
+            // int sys_page_unmap(envid_t envid, void *va)
+            return sys_page_unmap((envid_t)a1, (void*)a2);
         case SYS_exofork:
             // envid_t sys_exofork()
             return sys_exofork();
+        case SYS_env_set_status:
+            // int sys_env_set_status(envid_t envid, int status)
+            return sys_env_set_status((envid_t)a1, (int)a2);
         case SYS_yield:
             // void sys_yield()
             sys_yield();
