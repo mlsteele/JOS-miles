@@ -159,7 +159,37 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
+    struct Env *env;
+    struct PageInfo *pp;
+
+    cprintf("page_alloc requsted by pid:%d\n", curenv->env_id);
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+
+    if (va >= (void*)UTOP) {
+        cprintf("va too high\n");
+        return -E_INVAL;
+    }
+    if ((uintptr_t)va % PGSIZE != 0) {
+        cprintf("va not multiple of PGSIZE\n");
+        return -E_INVAL;
+    }
+    if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
+        cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
+        return -E_INVAL;
+    }
+    if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) {
+        cprintf("no other bits may be set\n");
+        return -E_INVAL;
+    }
+
+    if ((pp = page_alloc(ALLOC_ZERO)) == NULL) {
+        return -E_NO_MEM;
+    }
+    if (page_insert(env->env_pgdir, pp, va, perm) != 0) {
+        return -E_NO_MEM;
+    }
+
+    return 0;
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -190,7 +220,42 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+    struct Env *srcenv;
+    struct Env *dstenv;
+    pte_t *pte;
+    struct PageInfo *pp;
+
+    cprintf("page_map requsted by pid:%d\n", curenv->env_id);
+    if (envid2env(srcenvid, &srcenv, 1) != 0) return -E_BAD_ENV;
+    if (envid2env(dstenvid, &dstenv, 1) != 0) return -E_BAD_ENV;
+
+    if (srcva >= (void*)UTOP) return -E_INVAL;
+    if ((uintptr_t)srcva % PGSIZE != 0) return -E_INVAL;
+
+    if (dstva >= (void*)UTOP) return -E_INVAL;
+    if ((uintptr_t)dstva % PGSIZE != 0) return -E_INVAL;
+
+    if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
+        cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
+        return -E_INVAL;
+    }
+    if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) {
+        cprintf("no other bits may be set\n");
+        return -E_INVAL;
+    }
+
+    pp = page_lookup(srcenv->env_pgdir, srcva, &pte);
+
+    if ((*pte & PTE_P) != PTE_P) return -E_INVAL;
+
+    if (((*pte & PTE_W) != PTE_W) && (perm & PTE_W)) {
+        cprintf("cannot map read only page as writeable");
+        return -E_INVAL;
+    }
+
+    if (page_insert(dstenv->env_pgdir, pp, dstva, perm) != 0) return -E_NO_MEM;
+
+    return 0;
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -298,6 +363,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_page_alloc:
             // int sys_page_alloc(envid_t envid, void *va, int perm)
             return sys_page_alloc((envid_t) a1, (void*) a2, (int) a3);
+        case SYS_page_map:
+            // int sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int perm)
+            return sys_page_map((envid_t)a1, (void*)a2, (envid_t)a3, (void*)a4, (int)a5);
         case SYS_exofork:
             // envid_t sys_exofork()
             return sys_exofork();
