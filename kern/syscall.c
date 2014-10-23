@@ -85,7 +85,16 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+    struct Env *child;
+    cprintf("exofork requsted by pid:%d\n", curenv->env_id);
+    if (env_alloc(&child, curenv->env_id) != 0) {
+        panic("exofork: could not allocate env.");
+    }
+    child->env_status = ENV_NOT_RUNNABLE;
+    memcpy(&child->env_tf, &curenv->env_tf, sizeof(struct Trapframe));
+    child->env_tf.tf_regs.reg_eax = 0;
+    cprintf("exofork created as pid:%d\n", child->env_id);
+    return child->env_id;
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -280,20 +289,22 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_cgetc:
             // sys_cgetc(void)
             return sys_cgetc();
-            break;
         case SYS_getenvid:
             // envid_t sys_getenvid(void)
             return sys_getenvid();
-            break;
         case SYS_env_destroy:
-            // sys_env_destroy(envid_t envid)
+            // int sys_env_destroy(envid_t envid)
             return sys_env_destroy(a1);
-            break;
+        case SYS_page_alloc:
+            // int sys_page_alloc(envid_t envid, void *va, int perm)
+            return sys_page_alloc((envid_t) a1, (void*) a2, (int) a3);
+        case SYS_exofork:
+            // envid_t sys_exofork()
+            return sys_exofork();
         case SYS_yield:
-            // sys_yield()
+            // void sys_yield()
             sys_yield();
             return 0;
-            break;
 	}
 
     return -E_NO_SYS;
