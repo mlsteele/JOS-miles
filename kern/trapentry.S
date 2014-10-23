@@ -88,6 +88,7 @@ TRAPHANDLER_NOEC(trap_SYSCALL, T_SYSCALL)  // JOS system call
 /*
  * Lab 3: Your code here for _alltraps
  */
+.text
 _alltraps:
     // construct Trapframe on stack
     // this is the structure of Trapframe
