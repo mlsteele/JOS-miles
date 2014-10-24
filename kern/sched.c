@@ -67,15 +67,17 @@ void
 sched_halt(void)
 {
 	int i;
+    // cprintf("sched_halt start\n");
 
 	// For debugging and testing purposes, if there are no runnable
 	// environments in the system, then drop into the kernel monitor.
 	for (i = 0; i < NENV; i++) {
 		if ((envs[i].env_status == ENV_RUNNABLE ||
 		     envs[i].env_status == ENV_RUNNING ||
-		     envs[i].env_status == ENV_DYING))
-            cprintf("sched halt breaking\n");
-			break;
+		     envs[i].env_status == ENV_DYING)) {
+            // cprintf("sched halt breaking\n");
+            break;
+        }
 	}
 	if (i == NENV) {
 		cprintf("No runnable environments in the system!\n");
@@ -95,14 +97,14 @@ sched_halt(void)
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
 
-    cprintf("GOODBYE\n");
 	// Reset stack pointer, enable interrupts and then halt.
+    // cprintf("GOODBYE\n");
 	asm volatile (
 		"movl $0, %%ebp\n"
 		"movl %0, %%esp\n"
 		"pushl $0\n"
 		"pushl $0\n"
-		"sti\n"
+        "sti\n"
 		"1:\n"
 		"hlt\n"
 		"jmp 1b\n"

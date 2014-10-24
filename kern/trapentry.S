@@ -84,6 +84,9 @@ TRAPHANDLER_NOEC(trap_SIMDERR, T_SIMDERR)  // SIMD floating point error
 .space 28*4 // 20 through 47
 TRAPHANDLER_NOEC(trap_SYSCALL, T_SYSCALL)  // JOS system call
 
+// This is in the wrong place because it is installed separately.
+TRAPHANDLER_NOEC(trap_IRQ_TIMER, IRQ_OFFSET + IRQ_TIMER)  // IRQ Timer
+
 
 /*
  * Lab 3: Your code here for _alltraps

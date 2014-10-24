@@ -82,6 +82,11 @@ trap_init(void)
     SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handlers[T_BRKPT], 3);
     SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_handlers[T_SYSCALL], 3);
 
+    // TODO(miles): Done outside of lab.
+    // SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_handlers[IRQ_OFFSET + IRQ_TIMER], 0);
+    extern void trap_IRQ_TIMER();
+    SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_IRQ_TIMER, 0);
+
 	// Per-CPU setup 
 	trap_init_percpu();
 }
