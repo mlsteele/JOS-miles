@@ -86,7 +86,7 @@ sys_exofork(void)
 
 	// LAB 4: Your code here.
     struct Env *child;
-    cprintf("exofork requsted by pid:%d\n", curenv->env_id);
+    cprintf("exofork requested by pid:%d\n", curenv->env_id);
     if (env_alloc(&child, curenv->env_id) != 0) {
         panic("exofork: could not allocate env.");
     }
@@ -116,7 +116,7 @@ sys_env_set_status(envid_t envid, int status)
 	// LAB 4: Your code here.
     struct Env *env;
 
-    cprintf("env_set_status requsted by pid:%d\n", curenv->env_id);
+    cprintf("env_set_status requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     if (!(status == ENV_FREE ||
@@ -144,7 +144,11 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+    struct Env *env;
+    cprintf("env_set_pgfault_upcall requested by pid:%d\n", curenv->env_id);
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+    env->env_pgfault_upcall = func;
+    return 0;
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -177,7 +181,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     struct Env *env;
     struct PageInfo *pp;
 
-    cprintf("page_alloc requsted by pid:%d\n", curenv->env_id);
+    cprintf("page_alloc requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     if (va >= (void*)UTOP) {
@@ -240,7 +244,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
     pte_t *pte;
     struct PageInfo *pp;
 
-    cprintf("page_map requsted by pid:%d\n", curenv->env_id);
+    cprintf("page_map requested by pid:%d\n", curenv->env_id);
     if (envid2env(srcenvid, &srcenv, 1) != 0) return -E_BAD_ENV;
     if (envid2env(dstenvid, &dstenv, 1) != 0) return -E_BAD_ENV;
 
@@ -289,7 +293,7 @@ sys_page_unmap(envid_t envid, void *va)
 
     struct Env *env;
 
-    cprintf("page_unmap requsted by pid:%d\n", curenv->env_id);
+    cprintf("page_unmap requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     // Check va
@@ -401,6 +405,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_env_set_status:
             // int sys_env_set_status(envid_t envid, int status)
             return sys_env_set_status((envid_t)a1, (int)a2);
+        case SYS_env_set_pgfault_upcall:
+            // int sys_env_set_pgfault_upcall(envid_t envid, void *func)
+            return sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
         case SYS_yield:
             // void sys_yield()
             sys_yield();
