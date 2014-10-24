@@ -29,29 +29,35 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-    int i_base;
 
     if (curenv == NULL) {
-        i_base = 0;
-    } else {
-        i_base = ENVX(curenv->env_id) + 1;
-    }
-
-    // TODO bug should be going circ-1 not circ+1 or something like that.
-    // TODO bug should run current proc regardless of status.
-
-    int i_linear;
-    for (i_linear = 0; i_linear < NENV + 1; i_linear++) {
-        int i = (i_base + i_linear) % NENV;
-        /* cprintf("cpu[%d] schedule considering %d (id %d) (runs %dnc)\n", cpunum(), i, envs[i].env_id, envs[i].env_runs); */
-        if (envs[i].env_status == ENV_RUNNABLE) {
-            /* cprintf("CHOOSE %d\n", i); */
-            env_run(&envs[i]);
+        int i_base = 0;
+        int i_linear;
+        for (i_linear = 0; i_linear < NENV; i_linear++) {
+            int i = (i_base + i_linear) % NENV;
+            if (envs[i].env_status == ENV_RUNNABLE) {
+                env_run(&envs[i]);
+            }
         }
+        // sched_halt never returns
+        sched_halt();
+    } else {
+        int i_base = ENVX(curenv->env_id) + 1;
+        int i_linear;
+        for (i_linear = 0; i_linear < NENV; i_linear++) {
+            int i = (i_base + i_linear) % NENV;
+            if (envs[i].env_status == ENV_RUNNABLE) {
+                env_run(&envs[i]);
+            }
+        }
+        if (curenv->env_status == ENV_RUNNABLE || curenv->env_status == ENV_RUNNING) {
+            env_run(curenv);
+        }
+        // sched_halt never returns
+        sched_halt();
     }
 
-    // sched_halt never returns
-    sched_halt();
+    panic("sched_halt returned");
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
@@ -68,6 +74,7 @@ sched_halt(void)
 		if ((envs[i].env_status == ENV_RUNNABLE ||
 		     envs[i].env_status == ENV_RUNNING ||
 		     envs[i].env_status == ENV_DYING))
+            cprintf("sched halt breaking\n");
 			break;
 	}
 	if (i == NENV) {
@@ -88,6 +95,7 @@ sched_halt(void)
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
 
+    cprintf("GOODBYE\n");
 	// Reset stack pointer, enable interrupts and then halt.
 	asm volatile (
 		"movl $0, %%ebp\n"
