@@ -363,7 +363,7 @@ page_fault_handler(struct Trapframe *tf)
         struct UTrapframe *utf_target = ((struct UTrapframe*)push_to) - 1;
 
         user_mem_assert(curenv, curenv->env_pgfault_upcall, 1, 0);
-        user_mem_assert(curenv, (void*)push_to, sizeof(struct UTrapframe), PTE_W);
+        user_mem_assert(curenv, (void*)push_to - sizeof(struct UTrapframe), sizeof(struct UTrapframe), PTE_W);
 
         // Put the utf below the ux stack.
         lcr3(PADDR(curenv->env_pgdir));
