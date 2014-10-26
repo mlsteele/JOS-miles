@@ -344,6 +344,38 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+    if (curenv->env_pgfault_upcall != NULL) {
+        assert(tf == &curenv->env_tf);
+        struct UTrapframe utf;
+
+        // Inform utf of the situation.
+        utf.utf_fault_va = fault_va;
+        utf.utf_err      = tf->tf_err;
+        utf.utf_regs     = tf->tf_regs;
+        utf.utf_eip      = tf->tf_eip;
+        utf.utf_eflags   = tf->tf_eflags;
+        utf.utf_esp      = tf->tf_esp;
+
+        // Find the bottom of the ux stack.
+        int already_faulted = UXSTACKTOP-PGSIZE <= tf->tf_esp && tf->tf_esp <= UXSTACKTOP-1;
+        // push_to is the bottom of the ux stack.
+        uintptr_t push_to = already_faulted ? tf->tf_esp - 4 : UXSTACKTOP;
+        struct UTrapframe *utf_target = ((struct UTrapframe*)push_to) - 1;
+
+        user_mem_assert(curenv, curenv->env_pgfault_upcall, 1, 0);
+        user_mem_assert(curenv, (void*)push_to, sizeof(struct UTrapframe), PTE_W);
+
+        // Put the utf below the ux stack.
+        lcr3(PADDR(curenv->env_pgdir));
+        *utf_target = utf;
+        lcr3(PADDR(kern_pgdir));
+
+        // Set the handler to run the upcall on the ux stack.
+        tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+        tf->tf_esp = (uintptr_t)utf_target;
+        env_run(curenv);
+        panic("env_run returned");
+    }
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
