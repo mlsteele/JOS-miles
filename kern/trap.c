@@ -366,9 +366,7 @@ page_fault_handler(struct Trapframe *tf)
         user_mem_assert(curenv, (void*)push_to - sizeof(struct UTrapframe), sizeof(struct UTrapframe), PTE_W);
 
         // Put the utf below the ux stack.
-        lcr3(PADDR(curenv->env_pgdir));
         *utf_target = utf;
-        lcr3(PADDR(kern_pgdir));
 
         // Set the handler to run the upcall on the ux stack.
         tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;

@@ -181,7 +181,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     struct Env *env;
     struct PageInfo *pp;
 
-    cprintf("page_alloc requested by pid:%d\n", curenv->env_id);
+    cprintf("page_alloc requested @%p by pid:%d\n", va, curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     if (va >= (void*)UTOP) {
@@ -205,6 +205,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
         return -E_NO_MEM;
     }
     if (page_insert(env->env_pgdir, pp, va, perm) != 0) {
+        page_free(pp);
         return -E_NO_MEM;
     }
 
