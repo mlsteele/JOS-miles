@@ -14,27 +14,43 @@
 static void
 pgfault(struct UTrapframe *utf)
 {
-	void *addr = (void *) utf->utf_fault_va;
-	uint32_t err = utf->utf_err;
-	int r;
+    cprintf("pgfault user handler\n");
+    void *addr = (void *) utf->utf_fault_va;
+    uint32_t err = utf->utf_err;
 
-	// Check that the faulting access was (1) a write, and (2) to a
-	// copy-on-write page.  If not, panic.
-	// Hint:
-	//   Use the read-only page table mappings at uvpt
-	//   (see <inc/memlayout.h>).
+    // Check that the faulting access was (1) a write, and (2) to a
+    // copy-on-write page.  If not, panic.
+    // Hint:
+    //   Use the read-only page table mappings at uvpt
+    //   (see <inc/memlayout.h>).
 
-	// LAB 4: Your code here.
+    // LAB 4: Your code here.
+    unsigned pn = (uintptr_t)addr / PGSIZE;
+    pte_t pte = uvpt[pn];
+    int perms = pte ^ PTE_ADDR(pte);
+    bool fault_for_cow = (err & FEC_WR) && (perms & PTE_COW);
+    if (!fault_for_cow) {
+        panic("pgfault is not a copy on write effect");
+    }
 
-	// Allocate a new page, map it at a temporary location (PFTEMP),
-	// copy the data from the old page to the new page, then move the new
-	// page to the old page's address.
-	// Hint:
-	//   You should make three system calls.
+    // Allocate a new page, map it at a temporary location (PFTEMP),
+    // copy the data from the old page to the new page, then move the new
+    // page to the old page's address.
+    // Hint:
+    //   You should make three system calls.
 
-	// LAB 4: Your code here.
-
-	panic("pgfault not implemented");
+    // LAB 4: Your code here.
+    void *bottom = (void*)(pn * PGSIZE);
+    // Allocate a new page for our use.
+    sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W);
+    // Copy from the read only page into our new page.
+    memcpy(PFTEMP, bottom, PGSIZE);
+    // Unmap the read only page.
+    sys_page_unmap(0, bottom);
+    // Map in our new page.
+    sys_page_map(0, PFTEMP, 0, bottom, (perms ^ ~PTE_COW) | PTE_W);
+    // Unmap the temporary location.
+    sys_page_unmap(0, PFTEMP);
 }
 
 //
@@ -51,11 +67,27 @@ pgfault(struct UTrapframe *utf)
 static int
 duppage(envid_t envid, unsigned pn)
 {
-	int r;
+    // LAB 4: Your code here.
+    pte_t pte = uvpt[pn];
+    int perms = pte ^ PTE_ADDR(pte);
+    bool present = 0 != (perms & PTE_P);
+    bool mark_cow = 0 != (perms & PTE_W || perms & PTE_COW);
+    void *va = (void*)(pn * PGSIZE);
 
-	// LAB 4: Your code here.
-	panic("duppage not implemented");
-	return 0;
+    if (present && mark_cow) {
+        // Register writeable or COW pages as COW.
+        cprintf("duppage cow\n");
+        sys_page_map(0, va, envid, va, (perms & ~PTE_W) | PTE_COW);
+        cprintf("duppage almost done\n");
+    } else if (present) {
+        // Copy mapping only.
+        cprintf("duppage map\n");
+        sys_page_map(0, va, envid, va, perms);
+        cprintf("duppage almost done\n");
+    } else {
+        // Don't map anything for non-present pages.
+    }
+    return 0;
 }
 
 //
@@ -78,7 +110,40 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+    set_pgfault_handler(pgfault);
+
+    cprintf("fork\n");
+    envid_t child;
+    if ((child = sys_exofork()) < 0) {
+        panic("sys_exofork: %e", child);
+    }
+    if (child == 0) {
+        // We're the child.
+        // The copied value of the global variable 'thisenv'
+        // is no longer valid (it refers to the parent!).
+        // Fix it and return 0.
+        thisenv = &envs[ENVX(sys_getenvid())];
+        // I'm not sure if this is necessary, but it shouldn't hurt.
+        set_pgfault_handler(pgfault);
+        cprintf("fork-return child\n");
+        return 0;
+    }
+
+    // Set up child mappings.
+    int pn;
+    for (pn = 0; pn < UTOP / PGSIZE; pn++) {
+        if (pn == UXSTACKTOP/PGSIZE - 1) {
+            // User exception stack gets a new page no matter what.
+            sys_page_alloc(0, (void*)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
+        } else {
+            // Lazy-duplicate all other mappings
+            duppage(child, pn);
+        }
+    }
+
+    // Finished setting up child mappings, mark child as runnable.
+    sys_env_set_status(child, ENV_RUNNABLE);
+    return child;
 }
 
 // Challenge!

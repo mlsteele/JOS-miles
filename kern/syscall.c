@@ -12,6 +12,18 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 
+static void cprintperm(int perm) {
+    const int PTE_COW = 0x800;
+    cprintf("PTE_P PTE_U PTE_W PTE_COW Other\n");
+    cprintf("%d     %d     %d     %d       %d\n",
+        (perm & PTE_P) == PTE_P,
+        (perm & PTE_U) == PTE_U,
+        (perm & PTE_W) == PTE_W,
+        (perm & PTE_COW) == PTE_COW,
+        perm & ~(PTE_U | PTE_P | PTE_W | PTE_COW)
+    );
+}
+
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
@@ -261,6 +273,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
     }
     if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) {
         cprintf("no other bits may be set\n");
+        cprintperm(perm);
         return -E_INVAL;
     }
 
