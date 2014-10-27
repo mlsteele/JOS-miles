@@ -74,15 +74,18 @@ trap_init(void)
     int i;
     // SETGATE(gate, istrap, seg-selector, offset, descriptor priv level)
 
+    // TODO(miles): All of these are registered as interrupts.
+    //              This is probably a hack and should be rectified.
+
     // Setup mappings for the processor defined traps.
     // Both of these loops install some invalid extra traps
     // Most exceptions have DPL 0, so traps with other DPLs override below loop.
     for (i = T_DIVIDE; i <= T_SIMDERR; i++) {
-        SETGATE(idt[i], GATE_EXCEPTION, GD_KT, trap_handlers[i], 0);
+        SETGATE(idt[i], GATE_INTERRUPT, GD_KT, trap_handlers[i], 0);
     }
 
     // Breakpoints can be triiggered by the user.
-    SETGATE(idt[T_BRKPT], GATE_EXCEPTION, GD_KT, trap_handlers[T_BRKPT], 3);
+    SETGATE(idt[T_BRKPT], GATE_INTERRUPT, GD_KT, trap_handlers[T_BRKPT], 3);
 
     // Setup mappings for the interrupts.
     for (i = IRQ_OFFSET; i <= IRQ_OFFSET + IRQ_ERROR; i++) {
@@ -228,6 +231,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+    if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+        lapic_eoi();
+        sched_yield();
+        panic("sched_yield returned");
+    }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -259,7 +267,11 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
-	assert(!(read_eflags() & FL_IF));
+    if (read_eflags() & FL_IF) {
+        cprintf("trapno: %d | %e\n", tf->tf_trapno, tf->tf_trapno);
+        panic("trap with interrupts enabled");
+    }
+	assert(!(read_eflags() & FL_IF)); // double check, should never.
 
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
