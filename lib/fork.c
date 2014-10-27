@@ -73,7 +73,6 @@ duppage(envid_t envid, unsigned pn)
     // Abort if page table is not present.
     pde_t pde = uvpd[pn / (PGSIZE / sizeof(pte_t))];
     if (!(pde & PTE_P)) {
-        cprintf("duppage abort no page table\n");
         return 0;
     }
 
@@ -86,7 +85,8 @@ duppage(envid_t envid, unsigned pn)
     if (present && mark_cow) {
         // Register writeable or COW pages as COW.
         cprintf("duppage cow @%p\n");
-        sys_page_map(0, va, envid, va, PTE_P | PTE_U | PTE_COW);
+        sys_page_map(0, va, envid, va, PTE_P | PTE_U | PTE_COW); // for the child
+        sys_page_map(0, va, 0, va, PTE_P | PTE_U | PTE_COW); // and for us, the parent
         cprintf("duppage almost done\n");
     } else if (present) {
         // Copy read only mapping as read only.
@@ -94,7 +94,7 @@ duppage(envid_t envid, unsigned pn)
         sys_page_map(0, va, envid, va, PTE_P | PTE_U );
         cprintf("duppage almost done\n");
     } else {
-        cprintf("duppage nop\n");
+        // cprintf("duppage nop\n");
         // Don't map anything for non-present pages.
     }
     return 0;
@@ -133,8 +133,7 @@ fork(void)
         // is no longer valid (it refers to the parent!).
         // Fix it and return 0.
         thisenv = &envs[ENVX(sys_getenvid())];
-        // I'm not sure if this is necessary, but it shouldn't hurt.
-        set_pgfault_handler(pgfault);
+
         cprintf("fork-return child\n");
         return 0;
     }
@@ -143,9 +142,10 @@ fork(void)
     cprintf("setting up child mappings\n");
     unsigned pn;
     for (pn = 0; pn < UTOP / PGSIZE; pn++) {
-        cprintf("considering pn:%d va:%p\n", pn, pn * PGSIZE);
+        // cprintf("considering pn:%d va:%p\n", pn, pn * PGSIZE);
         if (pn == UXSTACKTOP/PGSIZE - 1) {
             // User exception stack gets a new page no matter what.
+            cprintf("allocating UX stack\n");
             sys_page_alloc(child, (void*)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
         } else {
             // Lazy-duplicate all other mappings
@@ -153,7 +153,11 @@ fork(void)
         }
     }
 
-    // Finished setting up child mappings, mark child as runnable.
+
+    // Install the child's page handler.
+    sys_env_set_pgfault_upcall(child, thisenv->env_pgfault_upcall);
+
+    // Mark child as runnable.
     cprintf("mark child as runnable\n");
     sys_env_set_status(child, ENV_RUNNABLE);
     cprintf("fork-return parent\n");
