@@ -71,21 +71,24 @@ trap_init(void)
 
 	// LAB 3: Your code here.
     extern uint32_t trap_handlers[];
-
-    // Setup mappings from the lowest to highest known trap number.
-    // Most traps have DPL 0, so traps with other DPLs go below loop.
     int i;
-    for (i = T_DIVIDE; i <= T_SYSCALL; i++) {
+
+    // Setup mappings for the processor defined traps.
+    // Both of these loops install some invalid extra traps
+    // Most exceptions have DPL 0, so traps with other DPLs override below loop.
+    for (i = T_DIVIDE; i <= T_SIMDERR; i++) {
         SETGATE(idt[i], 1, GD_KT, trap_handlers[i], 0);
     }
 
     SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handlers[T_BRKPT], 3);
-    SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_handlers[T_SYSCALL], 3);
 
-    // TODO(miles): Done outside of lab.
-    // SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_handlers[IRQ_OFFSET + IRQ_TIMER], 0);
-    extern void trap_IRQ_TIMER();
-    SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_IRQ_TIMER, 0);
+    // Setup mappings for the interrupts.
+    for (i = IRQ_OFFSET; i <= IRQ_OFFSET + IRQ_ERROR; i++) {
+        SETGATE(idt[i], 0, GD_KT, trap_handlers[i], 0);
+    }
+
+    // Syscall is in between the IRQs. Who put it here? :(
+    SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_handlers[T_SYSCALL], 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
