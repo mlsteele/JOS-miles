@@ -26,11 +26,12 @@ pgfault(struct UTrapframe *utf)
 
     // LAB 4: Your code here.
     unsigned pn = (uintptr_t)addr / PGSIZE;
+    void *bottom = (void*)(pn * PGSIZE);
     pte_t pte = uvpt[pn];
     int perms = pte ^ PTE_ADDR(pte);
     bool fault_for_cow = (err & FEC_WR) && (perms & PTE_COW);
     if (!fault_for_cow) {
-        panic("pgfault is not a copy on write effect");
+        panic("pgfault is not a copy on write effect @%p", bottom);
     }
 
     // Allocate a new page, map it at a temporary location (PFTEMP),
@@ -40,15 +41,14 @@ pgfault(struct UTrapframe *utf)
     //   You should make three system calls.
 
     // LAB 4: Your code here.
-    void *bottom = (void*)(pn * PGSIZE);
     // Allocate a new page for our use.
     sys_page_alloc(0, PFTEMP, PTE_P | PTE_U | PTE_W);
     // Copy from the read only page into our new page.
     memcpy(PFTEMP, bottom, PGSIZE);
-    // Unmap the read only page.
+    // Unmap the read only page. Is this optional or extra?
     sys_page_unmap(0, bottom);
     // Map in our new page.
-    sys_page_map(0, PFTEMP, 0, bottom, (perms ^ ~PTE_COW) | PTE_W);
+    sys_page_map(0, PFTEMP, 0, bottom, PTE_P | PTE_U | PTE_W);
     // Unmap the temporary location.
     sys_page_unmap(0, PFTEMP);
 }
@@ -68,23 +68,33 @@ static int
 duppage(envid_t envid, unsigned pn)
 {
     // LAB 4: Your code here.
+    void *va = (void*)(pn * PGSIZE);
+
+    // Abort if page table is not present.
+    pde_t pde = uvpd[pn / (PGSIZE / sizeof(pte_t))];
+    if (!(pde & PTE_P)) {
+        cprintf("duppage abort no page table\n");
+        return 0;
+    }
+
+    // Analyze pte
     pte_t pte = uvpt[pn];
     int perms = pte ^ PTE_ADDR(pte);
     bool present = 0 != (perms & PTE_P);
     bool mark_cow = 0 != (perms & PTE_W || perms & PTE_COW);
-    void *va = (void*)(pn * PGSIZE);
 
     if (present && mark_cow) {
         // Register writeable or COW pages as COW.
-        cprintf("duppage cow\n");
-        sys_page_map(0, va, envid, va, (perms & ~PTE_W) | PTE_COW);
+        cprintf("duppage cow @%p\n");
+        sys_page_map(0, va, envid, va, PTE_P | PTE_U | PTE_COW);
         cprintf("duppage almost done\n");
     } else if (present) {
-        // Copy mapping only.
+        // Copy read only mapping as read only.
         cprintf("duppage map\n");
-        sys_page_map(0, va, envid, va, perms);
+        sys_page_map(0, va, envid, va, PTE_P | PTE_U );
         cprintf("duppage almost done\n");
     } else {
+        cprintf("duppage nop\n");
         // Don't map anything for non-present pages.
     }
     return 0;
@@ -130,11 +140,13 @@ fork(void)
     }
 
     // Set up child mappings.
-    int pn;
+    cprintf("setting up child mappings\n");
+    unsigned pn;
     for (pn = 0; pn < UTOP / PGSIZE; pn++) {
+        cprintf("considering pn:%d va:%p\n", pn, pn * PGSIZE);
         if (pn == UXSTACKTOP/PGSIZE - 1) {
             // User exception stack gets a new page no matter what.
-            sys_page_alloc(0, (void*)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
+            sys_page_alloc(child, (void*)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
         } else {
             // Lazy-duplicate all other mappings
             duppage(child, pn);
@@ -142,7 +154,9 @@ fork(void)
     }
 
     // Finished setting up child mappings, mark child as runnable.
+    cprintf("mark child as runnable\n");
     sys_env_set_status(child, ENV_RUNNABLE);
+    cprintf("fork-return parent\n");
     return child;
 }
 
