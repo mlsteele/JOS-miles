@@ -72,23 +72,26 @@ trap_init(void)
 	// LAB 3: Your code here.
     extern uint32_t trap_handlers[];
     int i;
+    // SETGATE(gate, istrap, seg-selector, offset, descriptor priv level)
 
     // Setup mappings for the processor defined traps.
     // Both of these loops install some invalid extra traps
     // Most exceptions have DPL 0, so traps with other DPLs override below loop.
     for (i = T_DIVIDE; i <= T_SIMDERR; i++) {
-        SETGATE(idt[i], 1, GD_KT, trap_handlers[i], 0);
+        SETGATE(idt[i], GATE_EXCEPTION, GD_KT, trap_handlers[i], 0);
     }
 
-    SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handlers[T_BRKPT], 3);
+    // Breakpoints can be triiggered by the user.
+    SETGATE(idt[T_BRKPT], GATE_EXCEPTION, GD_KT, trap_handlers[T_BRKPT], 3);
 
     // Setup mappings for the interrupts.
     for (i = IRQ_OFFSET; i <= IRQ_OFFSET + IRQ_ERROR; i++) {
-        SETGATE(idt[i], 0, GD_KT, trap_handlers[i], 0);
+        SETGATE(idt[i], GATE_INTERRUPT, GD_KT, trap_handlers[i], 0);
     }
 
     // Syscall is in between the IRQs. Who put it here? :(
-    SETGATE(idt[T_SYSCALL], 1, GD_KT, trap_handlers[T_SYSCALL], 3);
+    // It seems like this has to be registered as an interrupt. Is that weird?
+    SETGATE(idt[T_SYSCALL], GATE_INTERRUPT, GD_KT, trap_handlers[T_SYSCALL], 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
