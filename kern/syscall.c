@@ -98,14 +98,14 @@ sys_exofork(void)
 
 	// LAB 4: Your code here.
     struct Env *child;
-    cprintf("exofork requested by pid:%d\n", curenv->env_id);
+    // cprintf("exofork requested by pid:%d\n", curenv->env_id);
     if (env_alloc(&child, curenv->env_id) != 0) {
         panic("exofork: could not allocate env.");
     }
     child->env_status = ENV_NOT_RUNNABLE;
     memcpy(&child->env_tf, &curenv->env_tf, sizeof(struct Trapframe));
     child->env_tf.tf_regs.reg_eax = 0;
-    cprintf("exofork created as pid:%d\n", child->env_id);
+    // cprintf("exofork created as pid:%d\n", child->env_id);
     return child->env_id;
 }
 
@@ -128,7 +128,7 @@ sys_env_set_status(envid_t envid, int status)
 	// LAB 4: Your code here.
     struct Env *env;
 
-    cprintf("env_set_status requested by pid:%d\n", curenv->env_id);
+    // cprintf("env_set_status requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     if (!(status == ENV_FREE ||
@@ -157,7 +157,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
     struct Env *env;
-    cprintf("env_set_pgfault_upcall requested by pid:%d\n", curenv->env_id);
+    // cprintf("env_set_pgfault_upcall requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
     env->env_pgfault_upcall = func;
     return 0;
@@ -193,23 +193,23 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     struct Env *env;
     struct PageInfo *pp;
 
-    cprintf("page_alloc requested @%p by pid:%d\n", va, curenv->env_id);
+    // cprintf("page_alloc requested @%p by pid:%d\n", va, curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     if (va >= (void*)UTOP) {
-        cprintf("va too high\n");
+        // cprintf("va too high\n");
         return -E_INVAL;
     }
     if ((uintptr_t)va % PGSIZE != 0) {
-        cprintf("va not multiple of PGSIZE\n");
+        // cprintf("va not multiple of PGSIZE\n");
         return -E_INVAL;
     }
     if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
-        cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
+        // cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
         return -E_INVAL;
     }
     if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) {
-        cprintf("no other bits may be set\n");
+        // cprintf("no other bits may be set\n");
         return -E_INVAL;
     }
 
@@ -267,11 +267,11 @@ sys_page_map_helper(envid_t srcenvid, void *srcva,
     if ((uintptr_t)dstva % PGSIZE != 0) return -E_INVAL;
 
     if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
-        cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
+        // cprintf("perm requires both PTE_U and PTE_P PGSIZE\n");
         return -E_INVAL;
     }
     if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) {
-        cprintf("no other bits may be set\n");
+        // cprintf("no other bits may be set\n");
         cprintperm(perm);
         return -E_INVAL;
     }
@@ -281,7 +281,7 @@ sys_page_map_helper(envid_t srcenvid, void *srcva,
     if ((*pte & PTE_P) != PTE_P) return -E_INVAL;
 
     if (((*pte & PTE_W) != PTE_W) && (perm & PTE_W)) {
-        cprintf("cannot map read only page as writeable");
+        // cprintf("cannot map read only page as writeable");
         return -E_INVAL;
     }
 
@@ -313,7 +313,7 @@ sys_page_unmap(envid_t envid, void *va)
 
     struct Env *env;
 
-    cprintf("page_unmap requested by pid:%d\n", curenv->env_id);
+    // cprintf("page_unmap requested by pid:%d\n", curenv->env_id);
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
 
     // Check va
@@ -366,8 +366,8 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
     // LAB 4: Your code here.
-    cprintf("ipc_try_send requested by pid:%d->pid:%d x%d->x%d\n",
-        curenv->env_id, envid, ENVX(curenv->env_id), ENVX(envid));
+    // cprintf("ipc_try_send requested by pid:%d->pid:%d x%d->x%d\n",
+    //     curenv->env_id, envid, ENVX(curenv->env_id), ENVX(envid));
     struct Env *receiver;
     // Make sure receiver exists.
     if (envid2env(envid, &receiver, 0) != 0) return -E_BAD_ENV;
@@ -412,7 +412,7 @@ static int
 sys_ipc_recv(void *dstva)
 {
     // LAB 4: Your code here.
-    cprintf("ipc_recv requested by pid:%d\n", curenv->env_id);
+    // cprintf("ipc_recv requested by pid:%d\n", curenv->env_id);
     if ((dstva < (void*)UTOP) && ((uintptr_t)dstva % PGSIZE != 0)) {
         return -E_INVAL;
     }

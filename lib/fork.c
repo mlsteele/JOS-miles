@@ -14,7 +14,7 @@
 static void
 pgfault(struct UTrapframe *utf)
 {
-    cprintf("pgfault user handler\n");
+    // cprintf("pgfault user handler\n");
     void *addr = (void *) utf->utf_fault_va;
     uint32_t err = utf->utf_err;
 
@@ -122,7 +122,7 @@ fork(void)
 	// LAB 4: Your code here.
     set_pgfault_handler(pgfault);
 
-    cprintf("fork\n");
+    // cprintf("fork\n");
     envid_t child;
     if ((child = sys_exofork()) < 0) {
         panic("sys_exofork: %e", child);
@@ -134,18 +134,18 @@ fork(void)
         // Fix it and return 0.
         thisenv = &envs[ENVX(sys_getenvid())];
 
-        cprintf("fork-return child\n");
+        // cprintf("fork-return child\n");
         return 0;
     }
 
     // Set up child mappings.
-    cprintf("setting up child mappings\n");
+    // cprintf("setting up child mappings\n");
     unsigned pn;
     for (pn = 0; pn < UTOP / PGSIZE; pn++) {
         // cprintf("considering pn:%d va:%p\n", pn, pn * PGSIZE);
         if (pn == UXSTACKTOP/PGSIZE - 1) {
             // User exception stack gets a new page no matter what.
-            cprintf("allocating UX stack\n");
+            // cprintf("allocating UX stack\n");
             sys_page_alloc(child, (void*)(UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
         } else {
             // Lazy-duplicate all other mappings
@@ -158,9 +158,9 @@ fork(void)
     sys_env_set_pgfault_upcall(child, thisenv->env_pgfault_upcall);
 
     // Mark child as runnable.
-    cprintf("mark child as runnable\n");
+    // cprintf("mark child as runnable\n");
     sys_env_set_status(child, ENV_RUNNABLE);
-    cprintf("fork-return parent\n");
+    // cprintf("fork-return parent\n");
     return child;
 }
 
