@@ -241,8 +241,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 //		address space.
 //	-E_NO_MEM if there's no memory to allocate any necessary page tables.
 static int
-sys_page_map(envid_t srcenvid, void *srcva,
-	     envid_t dstenvid, void *dstva, int perm)
+sys_page_map_helper(envid_t srcenvid, void *srcva,
+	     envid_t dstenvid, void *dstva, int perm, bool checked)
 {
 	// Hint: This function is a wrapper around page_lookup() and
 	//   page_insert() from kern/pmap.c.
@@ -257,9 +257,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
     pte_t *pte;
     struct PageInfo *pp;
 
-    // cprintf("page_map requested by pid:%d\n", curenv->env_id);
-    if (envid2env(srcenvid, &srcenv, 1) != 0) return -E_BAD_ENV;
-    if (envid2env(dstenvid, &dstenv, 1) != 0) return -E_BAD_ENV;
+    if (envid2env(srcenvid, &srcenv, checked) != 0) return -E_BAD_ENV;
+    if (envid2env(dstenvid, &dstenv, checked) != 0) return -E_BAD_ENV;
 
     if (srcva >= (void*)UTOP) return -E_INVAL;
     if ((uintptr_t)srcva % PGSIZE != 0) return -E_INVAL;
@@ -289,6 +288,13 @@ sys_page_map(envid_t srcenvid, void *srcva,
     if (page_insert(dstenv->env_pgdir, pp, dstva, perm) != 0) return -E_NO_MEM;
 
     return 0;
+}
+
+static int
+sys_page_map(envid_t srcenvid, void *srcva,
+	     envid_t dstenvid, void *dstva, int perm)
+{
+    return sys_page_map_helper(srcenvid, srcva, dstenvid, dstva, perm, true);
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -360,7 +366,8 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
     // LAB 4: Your code here.
-    cprintf("ipc_try_send requested by pid:%d\n", curenv->env_id);
+    cprintf("ipc_try_send requested by pid:%d->pid:%d x%d->x%d\n",
+        curenv->env_id, envid, ENVX(curenv->env_id), ENVX(envid));
     struct Env *receiver;
     // Make sure receiver exists.
     if (envid2env(envid, &receiver, 0) != 0) return -E_BAD_ENV;
@@ -374,8 +381,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     // Send a mapping
     if (srcva < (void*)UTOP && receiver->env_ipc_dstva < (void*)UTOP) {
         // Map the page. This call does lots of checks for us.
-        int r = sys_page_map(
-            curenv->env_id, srcva, receiver->env_id, receiver->env_ipc_dstva, perm);
+        int r = sys_page_map_helper(
+            curenv->env_id, srcva, receiver->env_id, receiver->env_ipc_dstva, perm, false);
         if (r < 0) return r;
         receiver->env_ipc_perm = perm;
     } else {
