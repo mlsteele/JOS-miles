@@ -98,9 +98,10 @@ sys_exofork(void)
 
 	// LAB 4: Your code here.
     struct Env *child;
+    int r;
     // cprintf("exofork requested by pid:%d\n", curenv->env_id);
-    if (env_alloc(&child, curenv->env_id) != 0) {
-        panic("exofork: could not allocate env.");
+    if ((r = env_alloc(&child, curenv->env_id)) != 0) {
+        return r;
     }
     child->env_status = ENV_NOT_RUNNABLE;
     memcpy(&child->env_tf, &curenv->env_tf, sizeof(struct Trapframe));
