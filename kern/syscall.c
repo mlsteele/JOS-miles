@@ -257,7 +257,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
     pte_t *pte;
     struct PageInfo *pp;
 
-    cprintf("page_map requested by pid:%d\n", curenv->env_id);
+    // cprintf("page_map requested by pid:%d\n", curenv->env_id);
     if (envid2env(srcenvid, &srcenv, 1) != 0) return -E_BAD_ENV;
     if (envid2env(dstenvid, &dstenv, 1) != 0) return -E_BAD_ENV;
 
@@ -359,8 +359,35 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
-	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+    // LAB 4: Your code here.
+    cprintf("ipc_try_send requested by pid:%d\n", curenv->env_id);
+    struct Env *receiver;
+    // Make sure receiver exists.
+    if (envid2env(envid, &receiver, 0) != 0) return -E_BAD_ENV;
+
+    // Make sure sender is not sending to self.
+    if (envid == curenv->env_id) return -E_INVAL;
+
+    // Make sure receiver is receiving.
+    if (!receiver->env_ipc_recving) return -E_IPC_NOT_RECV;
+
+    // Send a mapping
+    if (srcva < (void*)UTOP && receiver->env_ipc_dstva < (void*)UTOP) {
+        // Map the page. This call does lots of checks for us.
+        int r = sys_page_map(
+            curenv->env_id, srcva, receiver->env_id, receiver->env_ipc_dstva, perm);
+        if (r < 0) return r;
+        receiver->env_ipc_perm = perm;
+    } else {
+        receiver->env_ipc_perm = 0;
+    }
+
+    receiver->env_ipc_recving = false;
+    receiver->env_ipc_from = curenv->env_id;
+    receiver->env_ipc_value = value;
+    receiver->env_tf.tf_regs.reg_eax = 0; // Modify trap frame to return 0 from recv call.
+    receiver->env_status = ENV_RUNNABLE;
+    return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -377,9 +404,22 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 static int
 sys_ipc_recv(void *dstva)
 {
-	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
-	return 0;
+    // LAB 4: Your code here.
+    cprintf("ipc_recv requested by pid:%d\n", curenv->env_id);
+    if ((dstva < (void*)UTOP) && ((uintptr_t)dstva % PGSIZE != 0)) {
+        return -E_INVAL;
+    }
+
+    curenv->env_status = ENV_NOT_RUNNABLE;
+
+    curenv->env_ipc_recving = true;
+    curenv->env_ipc_dstva = dstva;
+    curenv->env_ipc_value = 0;
+    curenv->env_ipc_from = 0;
+    curenv->env_ipc_perm = 0;
+
+    sched_yield();
+    panic("sched_yield returned");
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -426,6 +466,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             // void sys_yield()
             sys_yield();
             return 0;
+        case SYS_ipc_try_send:
+            return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void*)a3, (unsigned)a4);
+        case SYS_ipc_recv:
+            return sys_ipc_recv((void*)a1);
 	}
 
     return -E_NO_SYS;

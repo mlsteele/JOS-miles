@@ -84,15 +84,15 @@ duppage(envid_t envid, unsigned pn)
 
     if (present && mark_cow) {
         // Register writeable or COW pages as COW.
-        cprintf("duppage cow @%p\n");
+        // cprintf("duppage cow @%p\n");
         sys_page_map(0, va, envid, va, PTE_P | PTE_U | PTE_COW); // for the child
         sys_page_map(0, va, 0, va, PTE_P | PTE_U | PTE_COW); // and for us, the parent
-        cprintf("duppage almost done\n");
+        // cprintf("duppage almost done\n");
     } else if (present) {
         // Copy read only mapping as read only.
-        cprintf("duppage map\n");
+        // cprintf("duppage map\n");
         sys_page_map(0, va, envid, va, PTE_P | PTE_U );
-        cprintf("duppage almost done\n");
+        // cprintf("duppage almost done\n");
     } else {
         // cprintf("duppage nop\n");
         // Don't map anything for non-present pages.
