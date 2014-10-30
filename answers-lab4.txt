@@ -25,14 +25,14 @@ The translation is not necessary in boot/boot.S because the VMA and runtime exec
 # Question 2
 It seems that using the big kernel lock guarantees that only one CPU can run the kernel code at a time. Why do we still need separate kernel stacks for each CPU? Describe a scenario in which using a shared kernel stack will go wrong, even with the protection of the big kernel lock.
 
-TODO answaer question.k maybe something to do with trap assembly pushing stuff to stack.
+We need separate kernel stacks because the big kernel lock is a software lock that is acquired relatively late in the trap process. All of _alltraps and a bunch of instructions in trap.c:trap occur before the kernel lock is acquired. So a disaster scenario for a shared stack would occur if two cpus were each running a process and both processes decided to do a syscall at the same time. Both cpus would enter the _alltraps and then trap.c:trap and use the stack, clobbering each other's state.
 
 # Question 3
 In your implementation of env_run() you should have called lcr3(). Before and after the call to lcr3(), your code makes references (at least it should) to the variable e, the argument to env_run. Upon loading the %cr3 register, the addressing context used by the MMU is instantly changed. But a virtual address (namely e) has meaning relative to a given address context--the address context specifies the physical address to which the virtual address maps. Why can the pointer e be dereferenced both before and after the addressing switch?
 
-TODO
+The `e` variable can be referenced before and after lcr3 as the same physical memory because we set up all env page mappings to mount the kernel in the same place above KERNBASE. `e` is a pointer to an Env in kernel space.
 
 # Question 4
 Whenever the kernel switches from one environment to another, it must ensure the old environment's registers are saved so they can be restored properly later. Why? Where does this happen?
 
-TODO
+The env registers must be saved because they are part of the program state just like the values in its stack and heap. C is compiled into assembly which can use registers to store the values of variables, and if the env was interrupted and run again with different register values it would likely corrupt variables in the user program. This happens in trapentry.S:_alltraps. The pusha instruction pushes the general purpose registers and the other pushes push other auxiliary registers. These are in the trapframe used to call trap. All state is restored in env_pop_tf.
