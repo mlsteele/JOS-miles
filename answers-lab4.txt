@@ -36,3 +36,8 @@ The `e` variable can be referenced before and after lcr3 as the same physical me
 Whenever the kernel switches from one environment to another, it must ensure the old environment's registers are saved so they can be restored properly later. Why? Where does this happen?
 
 The env registers must be saved because they are part of the program state just like the values in its stack and heap. C is compiled into assembly which can use registers to store the values of variables, and if the env was interrupted and run again with different register values it would likely corrupt variables in the user program. This happens in trapentry.S:_alltraps. The pusha instruction pushes the general purpose registers and the other pushes push other auxiliary registers. These are in the trapframe used to call trap. All state is restored in env_pop_tf.
+
+# Challenge
+I implemented a runtime-adjustable priority aware scheduler. It's round-robin underneath but gives each environment n chances to run where n is proportional to its priority. There are currently three discrete priority levels ENV_PRI_MAX, ENV_PRI_MID, and ENV_PRI_LOW. Environments default to ENV_PRI_MID but the priorities can be adjust be their parent calling the renice system call. The information regarding priority scheduling is stored in Env.env_sched_counter and Env.env_priority.
+
+To test the scheduler, use `make run-priorities-nox`, you should see that despite the fact that both user and child are spinning and printing, the child has a much higher priority and thus prints more often.
