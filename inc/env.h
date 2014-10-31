@@ -43,6 +43,12 @@ enum EnvType {
 	ENV_TYPE_USER = 0,
 };
 
+enum EnvPriority {
+    ENV_PRI_MAX = 20,
+    ENV_PRI_MID = 5,
+    ENV_PRI_LOW = 1
+};
+
 struct Env {
 	struct Trapframe env_tf;	// Saved registers
 	struct Env *env_link;		// Next free Env
@@ -52,6 +58,8 @@ struct Env {
 	unsigned env_status;		// Status of the environment
 	uint32_t env_runs;		// Number of times environment has run
 	int env_cpunum;			// The CPU that the env is running on
+	int env_priority;		// Scheduler priority (0 is default)
+    int env_sched_counter;       // Counts down from priority to zero to allow process to run more than once.
 
 	// Address space
 	pde_t *env_pgdir;		// Kernel virtual address of page dir

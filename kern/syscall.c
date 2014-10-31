@@ -80,6 +80,7 @@ sys_env_destroy(envid_t envid)
 static void
 sys_yield(void)
 {
+    curenv->env_sched_counter = 0;
 	sched_yield();
 }
 
@@ -395,6 +396,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     receiver->env_ipc_value = value;
     receiver->env_tf.tf_regs.reg_eax = 0; // Modify trap frame to return 0 from recv call.
     receiver->env_status = ENV_RUNNABLE;
+    curenv->env_sched_counter = 0;
     return 0;
 }
 
@@ -426,6 +428,7 @@ sys_ipc_recv(void *dstva)
     curenv->env_ipc_from = 0;
     curenv->env_ipc_perm = 0;
 
+    curenv->env_sched_counter = 0;
     sched_yield();
     panic("sched_yield returned");
 }
