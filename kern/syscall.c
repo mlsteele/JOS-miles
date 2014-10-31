@@ -106,6 +106,7 @@ sys_exofork(void)
     }
     child->env_status = ENV_NOT_RUNNABLE;
     memcpy(&child->env_tf, &curenv->env_tf, sizeof(struct Trapframe));
+    child->env_priority = ENV_PRI_MAX;
     child->env_tf.tf_regs.reg_eax = 0;
     // cprintf("exofork created as pid:%d\n", child->env_id);
     return child->env_id;
