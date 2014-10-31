@@ -434,6 +434,29 @@ sys_ipc_recv(void *dstva)
     panic("sched_yield returned");
 }
 
+// Change the priority of a process.
+// - priority must be one of EnvPriority.
+//	-E_BAD_ENV if envd doesn't currently exist,
+//		or the caller doesn't have permission to change it.
+//  -E_INVAL if priority is not a valid EnvPriority
+//  - returns 0 on success.
+static int
+sys_renice(envid_t envid, int priority)
+{
+    struct Env *env;
+    // Get target env.
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+
+    // Verify priority
+    if (!(priority == ENV_PRI_MAX || priority == ENV_PRI_MID || ENV_PRI_LOW)) {
+        return -E_INVAL;
+    }
+
+    // Set priority
+    env->env_priority = priority;
+    return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -482,6 +505,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void*)a3, (unsigned)a4);
         case SYS_ipc_recv:
             return sys_ipc_recv((void*)a1);
+        case SYS_renice:
+            return sys_renice((envid_t)a1, (int)a2);
 	}
 
     return -E_NO_SYS;

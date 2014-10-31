@@ -40,4 +40,4 @@ The env registers must be saved because they are part of the program state just 
 # Challenge
 I implemented a runtime-adjustable priority aware scheduler. It's round-robin underneath but gives each environment n chances to run where n is proportional to its priority. There are currently three discrete priority levels ENV_PRI_MAX, ENV_PRI_MID, and ENV_PRI_LOW. Environments default to ENV_PRI_MID but the priorities can be adjust be their parent calling the renice system call. The information regarding priority scheduling is stored in Env.env_sched_counter and Env.env_priority.
 
-To test the scheduler, use `make run-priorities-nox`, you should see that despite the fact that both user and child are spinning and printing, the child has a much higher priority and thus prints more often.
+To test the scheduler, use `CPUS=1 make run-priorities-nox`, you should see that despite the fact that both user and child are spinning and printing simultaneously in the begging, the child has a much higher priority and thus prints more often. After the child finishes then the parent finishes up uninterrupted.
