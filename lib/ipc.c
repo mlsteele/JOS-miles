@@ -26,7 +26,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
     if (pg == NULL) {
         pg = (void*)UTOP;
     }
-    int r = sys_ipc_recv(pg) != 0;
+    int r = sys_ipc_recv(pg);
     if (from_env_store != NULL) {
         *from_env_store = thisenv->env_ipc_from;
     }
