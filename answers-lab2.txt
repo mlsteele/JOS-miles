@@ -1,0 +1,67 @@
+# Question 1
+It should be a virtual address (uintptr_t).
+Because value, fetched from return_a_pointer, returns a C pointer represented with a virtual address.
+
+uintptr_t x; // Declare a virtual address.
+char* value = return_a_pointer(); // Get a pointer (programs operate in virtual memory).
+*value = 10; // Set value of the byte pointed to by the virtual pointer value to 0b1010.
+x = (mystery_t) value; // Set x to the number that is a virtual address.
+
+# Question 2
+Information garnered from `info pg` and my `meminfo` command as well as the notes in memlayout.h and some thought.
+Entry | Base VA    | Points to (logically)
+1023  | 0xef300000 | Page table for top 4MB of phys memory
+... more and more kernel
+962   | 0xf0800000 | more kernel
+961   | 0xf0400000 | more kernel
+960   | 0xf0000000 | Bottom of the kernel, top of the kernel stack.
+959   | 0xefc00000 | Memory mapped IO
+957   | 0xef400000 | User read only virtual page table.
+956   | 0xef000000 | User read only user PageInfo list.
+... not mapped until 956
+0     | 0x00800000 | Not mapped.
+0     | 0x00400000 | Not mapped.
+0     | 0x00000000 | Not mapped.
+
+# Question 3
+We have placed the kernel and user environment in the same address space. Why will user programs not be able to read or write the kernel's memory? What specific mechanisms protect the kernel memory?
+
+We have placed the kernel in a low PHYSICAL address and the user process in a similar VIRTUAL address. But we are not using an identity mapping between virtual and physical addresses. Instead, we map the virtual addresses of the user space to some otherwise unused physical pages (or don't map it at first and do this later). That way, the user process accessing low virtual memory will not be able to access the kernel's physical memory at all.
+
+But we do map the kernel memory into the same memory environment (page directory + page table system) that the user process executes on. But in the mapping, we do not set the PTE_U bit of the critical high virtual addresses. That way, if an instruction in user mode tries to use memory that is only meant for the kernel, the mmu will raise a protection fault and the kernel will be able to dispense with the unruly user process.
+
+# Question 4
+What is the maximum amount of physical memory that this operating system can support? Why?
+
+This operating system has 32 bit virtual addresses. The mmu supports addressing 32 bit physical addresses. Therefore the entire system can support only 2^32 bytes or about 4.3 GB.
+
+# Question 5
+How much space overhead is there for managing memory, if we actually had the maximum amount of physical memory? How is this overhead broken down?
+
+Let's break down the memory overhead of managing memory:
+
+First of all, there's the space that the code for how to manage memory takes up. Let's ignore that, it's pretty small and confusing to calculate.
+
+To keep track of which physical pages are free we kept a linked list of PageInfo structs. Each struct is 8 bytes, and there are 1048576 (maximum number of) pages. So that's 8388608 bytes or about 8.4 MB of overhead to keep track of pages.
+
+To map the whole address range completely, we would need one page directory and 1024 page tables. The page directory contains 1024 4 byte entries pointing to page tables. Each of the 1024 page tables contains 1024 entries, each pointing to a 4096 byte physical page. So the overhead of all this is 4096+1024*4096=4198400 or about 4.2 MB. This maps about 4.3 GB, which is the maximum addressable memory.
+
+So in total that's about 12.6 MB of overhead to manage the maximum amount of physical. This is assuming one process and that it requires a mapping for all of physical memory. Most processes will probably map less pages, and multiple processes may require multiple page directories.
+
+# Question 6
+Revisit the page table setup in kern/entry.S and kern/entrypgdir.c. Immediately after we turn on paging, EIP is still a low number (a little over 1MB). At what point do we transition to running at an EIP above KERNBASE? What makes it possible for us to continue executing at a low EIP between when we enable paging and when we begin running at an EIP above KERNBASE? Why is this transition necessary?
+
+We transition to above KERNBASE at the jump to $relocated
+	mov	$relocated, %eax
+	jmp	*%eax
+
+It's not a problem that the eip is still low because the entrypgdir mapping maps both low and high virtual addresses to low physical addresses. And also none of the code before the jumps cares where it is executed in memory.
+The transition is necessary so that later kernel code which depends on the high VMA can execute properly and also so that we can later remap low virtual memory to other physical pages for user processes to use.
+
+# Challenge Problem
+I implemented monitor three monitor utilities. They do useful things and print out help messages when used incorrectly.
+- showmappings (aliased also to sm) displays page mappings for a range of virtual addresses.
+- pgmod allows you to set the user and write permission bits of page mappings
+- memxv examines memory at virtual addresses
+- memxp examines memory at physical addresses
+- meminfo prints the values of a bunch of useful constants defined in memlayout.h
