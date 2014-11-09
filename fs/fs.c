@@ -162,6 +162,9 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
             if ((blockno = alloc_block()) < 0)
                 return -E_NO_DISK;
             f->f_indirect = blockno;
+            // Zero and flush the new indirect block.
+            memset(diskaddr(f->f_indirect), 0, BLKSIZE);
+            flush_block(diskaddr(blockno));
         }
         if (f->f_indirect == 0) {
             return -E_NO_DISK;
