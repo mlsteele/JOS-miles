@@ -153,9 +153,6 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
         lookup_index = filebno;
     } else if (filebno < NDIRECT + NINDIRECT) {
         // Target indirect block
-        lookup_base = &f->f_indirect;
-        lookup_index = filebno - NDIRECT;
-
         // Ensure the existence of the indirect block
         if (f->f_indirect == 0 && alloc) {
             // Allocate an indirect block
@@ -169,6 +166,9 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
         if (f->f_indirect == 0) {
             return -E_NO_DISK;
         }
+
+        lookup_base = diskaddr(f->f_indirect);
+        lookup_index = filebno - NDIRECT;
     } else {
         return -E_INVAL;
     }
