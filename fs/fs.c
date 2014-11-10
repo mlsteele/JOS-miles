@@ -67,6 +67,7 @@ alloc_block(void)
         if (block_is_free(blockno)) {
             // mark as used (0)
             bitmap[blockno/32] &= ~(1<<(blockno%32));
+            // TODO(miles): Flush the bitmap?
             flush_block(diskaddr(blockno));
             return blockno;
         }
