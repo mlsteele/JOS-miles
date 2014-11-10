@@ -213,8 +213,14 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	if (debug)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
-	// Lab 5: Your code here:
-	return 0;
+    // Lab 5: Your code here:
+    int r;
+    struct OpenFile *o;
+
+    if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
+        return r;
+
+    return file_read(o->o_file, ret->ret_buf, ipc->read.req_n, o->o_fd->fd_offset);
 }
 
 
