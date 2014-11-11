@@ -81,12 +81,15 @@ duppage(envid_t envid, unsigned pn)
     int perms = pte ^ PTE_ADDR(pte);
     bool present = 0 != (perms & PTE_P);
     bool mark_cow = 0 != (perms & PTE_W || perms & PTE_COW);
-    bool share = !!(perms & PTE_SHARE);
-    assert(!(mark_cow && share))
+    bool share = 0 != (perms & PTE_SHARE);
 
-    if (present && mark_cow) {
+    if (present && share) {
+        // Copy shared page.
+        sys_page_map(0, va, envid, va, perms & PTE_SYSCALL);
+    } else if (present && mark_cow) {
         // Register writeable or COW pages as COW.
         // cprintf("duppage cow @%p\n");
+        assert(!share);
         sys_page_map(0, va, envid, va, PTE_P | PTE_U | PTE_COW); // for the child
         sys_page_map(0, va, 0, va, PTE_P | PTE_U | PTE_COW); // and for us, the parent
         // cprintf("duppage almost done\n");
