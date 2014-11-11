@@ -1,4 +1,4 @@
 # Question 1
 Do you have to do anything else to ensure that this (fs IOPL) I/O privilege setting is saved and restored properly when you subsequently switch from one environment to another? Why?
 
-TODO
+No, the eflags register is preserved by traps and reloaded for the new environment by env_run every time the processor changes between processes.
