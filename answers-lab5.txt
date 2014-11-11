@@ -1,0 +1,4 @@
+# Question 1
+Do you have to do anything else to ensure that this (fs IOPL) I/O privilege setting is saved and restored properly when you subsequently switch from one environment to another? Why?
+
+TODO
