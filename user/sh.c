@@ -54,9 +54,18 @@ again:
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
 
-			// LAB 5: Your code here.
-			panic("< redirection not implemented");
-			break;
+            // LAB 5: Your code here.
+            // Open an fd t
+            if ((fd = open(t, 0)) < 0) {
+				cprintf("open %s for read: %e", t, fd);
+				exit();
+            }
+            // Make sure t is open on fd 0
+			if (fd != 0) {
+				dup(fd, 0);
+				close(fd);
+			}
+            break;
 
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
