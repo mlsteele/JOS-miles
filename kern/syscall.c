@@ -396,7 +396,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     if (envid2env(envid, &receiver, 0) != 0) return -E_BAD_ENV;
 
     // Make sure sender is not sending to self.
-    if (envid == curenv->env_id) return -E_INVAL;
+    if (receiver->env_id == curenv->env_id) return -E_INVAL;
 
     // Make sure receiver is receiving.
     if (!receiver->env_ipc_recving) return -E_IPC_NOT_RECV;
