@@ -84,11 +84,15 @@ flush_block(void *addr)
 		panic("flush_block of bad va %08x", addr);
 
 	// LAB 5: Your code here.
+    if (!va_is_mapped(addr)) return;
+    if (!va_is_dirty(addr)) return;
+
+    int r;
     void *addr_down = ROUNDDOWN(addr, PGSIZE);
     if (ide_write(blockno * (BLKSIZE / SECTSIZE), addr_down, PGSIZE / SECTSIZE) < 0)
         panic("could not write block to disk");
-    if (sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL) < 0)
-        panic("could not clear diry bit");
+    if ((r = sys_page_map(0, addr_down, 0, addr_down, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
+        panic("could not clear diry bit: %e", r);
 }
 
 // Test that the block cache works, by smashing the superblock and

@@ -63,12 +63,14 @@ alloc_block(void)
 
 	// LAB 5: Your code here.
     uint32_t blockno = 1;
-    for (blockno = 1; blockno++; super->s_nblocks) {
+    for (blockno = 1; super->s_nblocks; blockno++) {
         if (block_is_free(blockno)) {
             // mark as used (0)
             bitmap[blockno/32] &= ~(1<<(blockno%32));
-            // TODO(miles): Flush the bitmap?
+            // TODO(miles): This first flush of the block may be extra
             flush_block(diskaddr(blockno));
+            // Flush the bitmap
+            flush_block(&bitmap[blockno/32]);
             return blockno;
         }
     }
@@ -165,7 +167,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
             flush_block(diskaddr(blockno));
         }
         if (f->f_indirect == 0) {
-            return -E_NO_DISK;
+            return -E_NOT_FOUND;
         }
 
         lookup_base = diskaddr(f->f_indirect);
