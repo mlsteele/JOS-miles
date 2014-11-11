@@ -24,12 +24,8 @@ fsipc(unsigned type, void *dstva)
 	if (debug)
 		cprintf("[%08x] fsipc %d %08x\n", thisenv->env_id, type, *(uint32_t *)&fsipcbuf);
 
-    cprintf("fsipc sending\n");
 	ipc_send(fsenv, type, &fsipcbuf, PTE_P | PTE_W | PTE_U);
-    cprintf("fsipc recving\n");
-	int r = ipc_recv(NULL, dstva, NULL);
-    cprintf("fsipc received %d\n", r);
-    return r;
+	return ipc_recv(NULL, dstva, NULL);
 }
 
 static int devfile_flush(struct Fd *fd);
@@ -145,25 +141,17 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
     // LAB 5: Your code here
-    cprintf("devfile_write\n");
     int r;
     const size_t bufsize = sizeof(fsipcbuf.write.req_buf);
     const size_t revized_size = MIN(MIN(n, bufsize), PGSIZE);
-    cprintf("devfile_write revized size: %d\n", revized_size);
 
     fsipcbuf.write.req_fileid = fd->fd_file.id;
     fsipcbuf.write.req_n = revized_size;
     memmove(fsipcbuf.write.req_buf, buf, revized_size);
-    cprintf("devfile_write sending ipc\n");
-    // TODO(miles): weird weird weird EDIT not as weird.
-    // if ((r = fsipc(FSREQ_WRITE, fsipcbuf.write.req_buf) < 0)) {
-    if ((r = fsipc(FSREQ_WRITE, NULL)) < 0) {
-        cprintf("devfile_write failed: %d\n", r);
+    if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
         return r;
-    }
     assert(r <= n);
     assert(r <= PGSIZE);
-    cprintf("devfile_write returning %d\n", r);
     return r;
 }
 

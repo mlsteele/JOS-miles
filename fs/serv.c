@@ -238,7 +238,6 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
     // LAB 5: Your code here.
-    cprintf("serve_write\n");
     int r;
     struct OpenFile *o;
 
@@ -247,17 +246,16 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 
     // Extend the file if necessary
     if (o->o_fd->fd_offset + req->req_n > o->o_file->f_size) {
-        cprintf("serve_write resizing\n");
         if (file_set_size(o->o_file, o->o_fd->fd_offset + req->req_n) != 0)
             panic("file_set_size failed unexpectedly");
     }
 
-    cprintf("serve_write writing\n");
+    // Write
     if ((r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset)) < 0)
         return r;
-    cprintf("serve_write adjusting offset\n");
+
+    // Adjust offset
     o->o_fd->fd_offset += r;
-    cprintf("serve_write adjusting returning %d\n", r);
     return r;
 }
 
