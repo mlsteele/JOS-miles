@@ -81,6 +81,8 @@ duppage(envid_t envid, unsigned pn)
     int perms = pte ^ PTE_ADDR(pte);
     bool present = 0 != (perms & PTE_P);
     bool mark_cow = 0 != (perms & PTE_W || perms & PTE_COW);
+    bool share = !!(perms & PTE_SHARE);
+    assert(!(mark_cow && share))
 
     if (present && mark_cow) {
         // Register writeable or COW pages as COW.
