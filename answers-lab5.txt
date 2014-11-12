@@ -2,3 +2,27 @@
 Do you have to do anything else to ensure that this (fs IOPL) I/O privilege setting is saved and restored properly when you subsequently switch from one environment to another? Why?
 
 No, the eflags register is preserved by traps and reloaded for the new environment by env_run every time the processor changes between processes.
+
+# Challenge
+
+Challenge! The file system is likely to be corrupted if it gets interrupted in the middle of an operation (for example, by a crash or a reboot). Implement soft updates or journalling to make the file system crash-resilient and demonstrate some situation where the old file system would get corrupted, but yours doesn't.
+
+Challenge! Implement Unix-style exec.
+
+Challenge! Implement mmap-style memory-mapped files and modify spawn to map pages directly from the ELF image when possible.
+
+Challenge! Add more features to the shell. Possibilities include (a few require changes to the file system too):
+    backgrounding commands (ls &)
+    multiple commands per line (ls; echo hi)
+    command grouping ((ls; echo hi) | cat > out)
+    environment variable expansion (echo $hello)
+    quoting (echo "a | b")
+    command-line history and/or editing
+    tab completion
+    directories, cd, and a PATH for command-lookup.
+    file creation
+    ctl-c to kill the running environment
+
+Challenge! Implement interrupt-driven IDE disk access, with or without DMA. You can decide whether to move the device driver into the kernel, keep it in user space along with the file system, or even (if you really want to get into the micro-kernel spirit) move it into a separate environment of its own.
+
+Challenge! The block cache has no eviction policy. Once a block gets faulted in to it, it never gets removed and will remain in memory forevermore. Add eviction to the buffer cache. Using the PTE_A "accessed" bits in the page tables, which the hardware sets on any access to a page, you can track approximate usage of disk blocks without the need to modify every place in the code that accesses the disk map region. Be careful with dirty blocks.
