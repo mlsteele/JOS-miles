@@ -158,12 +158,12 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
     // address!
     struct Env *env;
     if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+    env->env_tf = *tf;
     env->env_tf.tf_ds = GD_UD | 3;
     env->env_tf.tf_es = GD_UD | 3;
     env->env_tf.tf_ss = GD_UD | 3;
     env->env_tf.tf_cs = GD_UT | 3;
     env->env_tf.tf_eflags |= FL_IF;
-    env->env_tf = *tf;
     return 0;
 }
 
