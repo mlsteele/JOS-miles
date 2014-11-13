@@ -91,7 +91,7 @@ flush_block(void *addr)
     void *addr_down = ROUNDDOWN(addr, PGSIZE);
     if (ide_write(blockno * (BLKSIZE / SECTSIZE), addr_down, PGSIZE / SECTSIZE) < 0)
         panic("could not write block to disk");
-    if ((r = sys_page_map(0, addr_down, 0, addr_down, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
+    if ((r = sys_page_map(0, addr_down, 0, addr_down, uvpt[PGNUM(addr_down)] & PTE_SYSCALL)) < 0)
         panic("could not clear diry bit: %e", r);
 }
 
