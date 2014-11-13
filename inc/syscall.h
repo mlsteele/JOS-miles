@@ -18,6 +18,7 @@ enum {
 	SYS_ipc_try_send,
 	SYS_ipc_recv,
 	SYS_renice,
+	SYS_env_set_kill_target,
 	NSYSCALLS
 };
 

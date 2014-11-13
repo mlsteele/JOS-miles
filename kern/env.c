@@ -243,6 +243,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_runs = 0;
 	e->env_priority = ENV_PRI_MID;
 	e->env_sched_counter = 0;
+	e->env_kill_target = 0;
 
 	// Clear out all the saved register state,
 	// to prevent the register values
@@ -492,7 +493,7 @@ env_free(struct Env *e)
 // to the caller).
 //
 void
-env_destroy(struct Env *e)
+env_destroy_helper(struct Env *e, bool safety)
 {
 	// If e is currently running on other CPUs, we change its state to
 	// ENV_DYING. A zombie environment will be freed the next time
@@ -504,10 +505,37 @@ env_destroy(struct Env *e)
 
 	env_free(e);
 
-	if (curenv == e) {
+	if (safety && curenv == e) {
 		curenv = NULL;
 		sched_yield();
 	}
+}
+
+void
+env_destroy(struct Env *e)
+{
+    env_destroy_helper(e, true);
+}
+
+//
+// Handle kill signals (Ctrl-C)
+// Kill all processes with the env_kill_target flag set.
+//
+void
+env_handle_kill_signal(void)
+{
+    int i;
+    struct Env *env;
+    int envs_destroyed = 0;
+
+    // Scan processes for killables.
+    for (i = 0; i < NENV; i++) {
+        env = &envs[i];
+        if (!env->env_kill_target) continue;
+        if (!(env->env_status == ENV_RUNNING || env->env_status == ENV_RUNNABLE)) continue;
+        env_destroy_helper(env, false);
+        envs_destroyed++;
+    }
 }
 
 

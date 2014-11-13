@@ -322,6 +322,9 @@ umain(int argc, char **argv)
 		if (debug)
 			cprintf("FORK: %d\n", r);
 		if (r == 0) {
+            // Make the command killable.
+            if (sys_env_set_kill_target(0) < 0)
+                panic("Shell failed to env as killable");
 			runcmd(buf);
 			exit();
 		} else

@@ -103,9 +103,25 @@ sys_exofork(void)
     child->env_status = ENV_NOT_RUNNABLE;
     memcpy(&child->env_tf, &curenv->env_tf, sizeof(struct Trapframe));
     child->env_priority = ENV_PRI_MAX;
+    // Kill target property is inherited.
+    child->env_kill_target = curenv->env_kill_target;
     child->env_tf.tf_regs.reg_eax = 0;
     // cprintf("exofork created as pid:%d\n", child->env_id);
     return child->env_id;
+}
+
+// Set envid's env_kill_target.
+//
+// Returns 0 on success, < 0 on error.  Errors are:
+//	-E_BAD_ENV if environment envid doesn't currently exist,
+//		or the caller doesn't have permission to change envid.
+static int
+sys_env_set_kill_target(envid_t envid)
+{
+    struct Env *env;
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+    env->env_kill_target = 1;
+    return 0;
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -530,6 +546,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_ipc_recv((void*)a1);
         case SYS_renice:
             return sys_renice((envid_t)a1, (int)a2);
+        case SYS_env_set_kill_target:
+            // int sys_env_set_kill_target(envid_t envid)
+            return sys_env_set_kill_target((envid_t)a1);
 	}
 
     return -E_INVAL;

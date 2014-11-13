@@ -8,6 +8,7 @@
 
 #include <kern/console.h>
 #include <kern/picirq.h>
+#include <kern/env.h>
 
 static void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
@@ -398,15 +399,20 @@ static struct {
 static void
 cons_intr(int (*proc)(void))
 {
-	int c;
+    int c;
 
-	while ((c = (*proc)()) != -1) {
-		if (c == 0)
-			continue;
-		cons.buf[cons.wpos++] = c;
-		if (cons.wpos == CONSBUFSIZE)
-			cons.wpos = 0;
-	}
+    while ((c = (*proc)()) != -1) {
+        if (c == 0)
+            continue;
+        if (c == 0x03) {
+            // Handle Ctrl-C
+            cprintf("^C");
+            env_handle_kill_signal();
+        }
+        cons.buf[cons.wpos++] = c;
+        if (cons.wpos == CONSBUFSIZE)
+            cons.wpos = 0;
+    }
 }
 
 // return the next input character from the console, or 0 if none waiting

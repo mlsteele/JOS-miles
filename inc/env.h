@@ -60,7 +60,9 @@ struct Env {
 	uint32_t env_runs;		// Number of times environment has run
 	int env_cpunum;			// The CPU that the env is running on
 	int env_priority;		// Scheduler priority (0 is default)
-    int env_sched_counter;       // Counts down from priority to zero to allow process to run more than once.
+    int env_sched_counter;  // Counts down from priority to zero to allow process to run more than once.
+    int env_kill_target;    // Whether the env should be killed by incoming kill signals.
+                            // Kill target is inherited and can never be unset.
 
 	// Address space
 	pde_t *env_pgdir;		// Kernel virtual address of page dir
