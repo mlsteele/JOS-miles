@@ -23,6 +23,7 @@ runcmd(char* s)
 {
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
 	int argc, c, i, r, p[2], fd, pipe_child;
+    bool background = false;
 
 	pipe_child = 0;
 	gettoken(s, 0);
@@ -113,6 +114,9 @@ again:
 			panic("| not implemented");
 			break;
 
+        case '&':   // Background
+            background = true;
+
 		case 0:		// String is complete
 			// Run the current command!
 			goto runit;
@@ -161,7 +165,8 @@ runit:
 	if (r >= 0) {
 		if (debug)
 			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
-		wait(r);
+        if (!background)
+            wait(r);
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
