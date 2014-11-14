@@ -4,25 +4,37 @@ Do you have to do anything else to ensure that this (fs IOPL) I/O privilege sett
 No, the eflags register is preserved by traps and reloaded for the new environment by env_run every time the processor changes between processes.
 
 # Challenge
+I implemented 3 new features for the shell.
 
-Challenge! The file system is likely to be corrupted if it gets interrupted in the middle of an operation (for example, by a crash or a reboot). Implement soft updates or journalling to make the file system crash-resilient and demonstrate some situation where the old file system would get corrupted, but yours doesn't.
+## File Creation
+You could already create files using redirection:
+    $ echo > newfile
 
-Challenge! Implement Unix-style exec.
+But it would be nice if the `touch` command existed. This makes the shell more fun, but there was no need to special case touch into the shell, so I just a user/touch program.
 
-Challenge! Implement mmap-style memory-mapped files and modify spawn to map pages directly from the ELF image when possible.
+## Background Commands
+You can run a command in the background with the '&' character. For example:
+    $ primes
+    $ blah blah lots of primes
+    ls # you type this
+    output of ls
+    more primes
+(Primes is a weird example because it crashes the system in the end)
 
-Challenge! Add more features to the shell. Possibilities include (a few require changes to the file system too):
-    backgrounding commands (ls &)
-    multiple commands per line (ls; echo hi)
-    command grouping ((ls; echo hi) | cat > out)
-    environment variable expansion (echo $hello)
-    quoting (echo "a | b")
-    command-line history and/or editing
-    tab completion
-    directories, cd, and a PATH for command-lookup.
-    file creation
-    ctl-c to kill the running environment
+The background process still outputs to stdout but leaves the prompt open for more commands whose output will also appear on stdout.
 
-Challenge! Implement interrupt-driven IDE disk access, with or without DMA. You can decide whether to move the device driver into the kernel, keep it in user space along with the file system, or even (if you really want to get into the micro-kernel spirit) move it into a separate environment of its own.
+This involved a small modification to the shell program to only wait for spawned envs to exit if '&' is not involved.
 
-Challenge! The block cache has no eviction policy. Once a block gets faulted in to it, it never gets removed and will remain in memory forevermore. Add eviction to the buffer cache. Using the PTE_A "accessed" bits in the page tables, which the hardware sets on any access to a page, you can track approximate usage of disk blocks without the need to modify every place in the code that accesses the disk map region. Be careful with dirty blocks.
+## Killing Processes
+    $ loop
+    looping forever.....^C$
+    $
+
+I added the ability to kill processes started by the shell with Ctrl-C.
+This implementation is not quite the same as the standard you are familiar with.
+Ctrl-C kills all programs spawned by the shell, including running background processes.
+Ctrl-C does not reset the current prompt line.
+
+The Ctrl-C handling is handled in the kernel. The handler is activated by a case in the keyboard handler. The ctrl-c handler kills any envs which have been registered as kill targets. There is a system call, sys_env_set_kill_target, which registers an env that the caller has access to modify to be a kill target. This way, the shell can set envs that it spawns to be kill targets but those programs can't take over because they don't have access to set the shell to be a kill target and there is not way to unset themselves from being kill target.
+
+To test this I added a user/loop program that loops forever, printing once in a while.
