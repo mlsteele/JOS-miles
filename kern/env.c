@@ -505,9 +505,10 @@ env_destroy_helper(struct Env *e, bool safety)
 
 	env_free(e);
 
-	if (safety && curenv == e) {
+	if (curenv == e) {
 		curenv = NULL;
-		sched_yield();
+        if (safety)
+            sched_yield();
 	}
 }
 
@@ -592,6 +593,8 @@ env_run(struct Env *e)
         curenv->env_status = ENV_RUNNABLE;
     }
 
+    assert(e != NULL);
+    assert(e->env_pgdir != NULL);
     curenv = e;
     e->env_status = ENV_RUNNING;
     e->env_runs += 1;
