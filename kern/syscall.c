@@ -498,8 +498,8 @@ sys_renice(envid_t envid, int priority)
 static int
 sys_time_msec(void)
 {
-	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+    // LAB 6: Your code here.
+    return time_msec();
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -558,6 +558,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_env_set_kill_target:
             // int sys_env_set_kill_target(envid_t envid)
             return sys_env_set_kill_target((envid_t)a1);
+        case SYS_time_msec:
+            return sys_time_msec();
 	}
 
     return -E_INVAL;
