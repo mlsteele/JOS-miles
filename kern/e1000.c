@@ -1,6 +1,7 @@
 #include <kern/e1000.h>
 
 #include <inc/assert.h>
+#include <kern/e1000_hw.h>
 #include <kern/pmap.h>
 
 volatile uint32_t *bar0;
@@ -34,6 +35,14 @@ debug_pci_func(struct pci_func *pcif)
     cprintf("  irq_line: %d\n", pcif->irq_line);
 }
 
+// Convert a register offset into a pointer to virtual memory.
+// offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
+static volatile uint32_t*
+e1000h_reg(uint32_t offset)
+{
+    return bar0 + (offset / 4);
+}
+
 // Returns 0 on success.
 // Returns a negative value on failure.
 int
@@ -53,7 +62,7 @@ e1000h_enable(struct pci_func *pcif)
     // 4 byte register that starts at byte 8 of bar0.
     // 0x80080783 indicates a full duplex link is up
     // at 1000 MB/s, among other things.
-    uint32_t status = *(bar0 + 2);
+    uint32_t status = *e1000h_reg(E1000_STATUS);
     cprintf("e1000h status: %p\n", status);
     assert(0x80080783 == status);
 
