@@ -1,0 +1,43 @@
+# Question 1
+Compare kern/mpentry.S side by side with boot/boot.S. Bearing in mind that kern/mpentry.S is compiled and linked to run above KERNBASE just like everything else in the kernel, what is the purpose of macro MPBOOTPHYS? Why is it necessary in kern/mpentry.S but not in boot/boot.S? In other words, what could go wrong if it were omitted in kern/mpentry.S? 
+
+MPBOOTPHYS = (s) -> s - mpentry_start + MPENTRY_PADDR
+
+kern/init.c:boot_aps
+	// Write entry code to unused memory at MPENTRY_PADDR
+	code = KADDR(MPENTRY_PADDR);
+	memmove(code, mpentry_start, mpentry_end - mpentry_start);
+
+MPBOOTPHYS is a macro used to translate an symbol offset within the assembly file into a correct runtime address.
+In boot_aps there are three lines which the code from kern/mpentry.s into MPENTRY_PADDR.
+Because MPENTRY_PADDR is not the VMA, the introspective offsets in mpentry.S would be wrong.
+But since they are all run the MPENTRY_PADDR, then the offsets are correct assuming mpentry_start executes at MPENTRY_PADDR.
+The introspective points in the mpentry sequence are:
+- Loading the gdt
+	lgdt    MPBOOTPHYS(gdtdesc)
+- Switching to 32 bit mode
+	ljmpl   $(PROT_MODE_CSEG), $(MPBOOTPHYS(start32))
+- Describing the gdt
+	.long   MPBOOTPHYS(gdt)			# address gdt
+
+The translation is not necessary in boot/boot.S because the VMA and runtime execution address are actually the same, so the linker properly calculates offsets.
+
+# Question 2
+It seems that using the big kernel lock guarantees that only one CPU can run the kernel code at a time. Why do we still need separate kernel stacks for each CPU? Describe a scenario in which using a shared kernel stack will go wrong, even with the protection of the big kernel lock.
+
+We need separate kernel stacks because the big kernel lock is a software lock that is acquired relatively late in the trap process. All of _alltraps and a bunch of instructions in trap.c:trap occur before the kernel lock is acquired. So a disaster scenario for a shared stack would occur if two cpus were each running a process and both processes decided to do a syscall at the same time. Both cpus would enter the _alltraps and then trap.c:trap and use the stack, clobbering each other's state.
+
+# Question 3
+In your implementation of env_run() you should have called lcr3(). Before and after the call to lcr3(), your code makes references (at least it should) to the variable e, the argument to env_run. Upon loading the %cr3 register, the addressing context used by the MMU is instantly changed. But a virtual address (namely e) has meaning relative to a given address context--the address context specifies the physical address to which the virtual address maps. Why can the pointer e be dereferenced both before and after the addressing switch?
+
+The `e` variable can be referenced before and after lcr3 as the same physical memory because we set up all env page mappings to mount the kernel in the same place above KERNBASE. `e` is a pointer to an Env in kernel space.
+
+# Question 4
+Whenever the kernel switches from one environment to another, it must ensure the old environment's registers are saved so they can be restored properly later. Why? Where does this happen?
+
+The env registers must be saved because they are part of the program state just like the values in its stack and heap. C is compiled into assembly which can use registers to store the values of variables, and if the env was interrupted and run again with different register values it would likely corrupt variables in the user program. This happens in trapentry.S:_alltraps. The pusha instruction pushes the general purpose registers and the other pushes push other auxiliary registers. These are in the trapframe used to call trap. All state is restored in env_pop_tf.
+
+# Challenge
+I implemented a runtime-adjustable priority aware scheduler. It's round-robin underneath but gives each environment n chances to run where n is proportional to its priority. There are currently three discrete priority levels ENV_PRI_MAX, ENV_PRI_MID, and ENV_PRI_LOW. Environments default to ENV_PRI_MID but the priorities can be adjust be their parent calling the renice system call. The information regarding priority scheduling is stored in Env.env_sched_counter and Env.env_priority.
+
+To test the scheduler, use `CPUS=1 make run-priorities-nox`, you should see that despite the fact that both user and child are spinning and printing simultaneously in the begging, the child has a much higher priority and thus prints more often. After the child finishes then the parent finishes up uninterrupted.

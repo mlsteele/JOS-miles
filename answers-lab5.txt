@@ -1,0 +1,40 @@
+# Question 1
+Do you have to do anything else to ensure that this (fs IOPL) I/O privilege setting is saved and restored properly when you subsequently switch from one environment to another? Why?
+
+No, the eflags register is preserved by traps and reloaded for the new environment by env_run every time the processor changes between processes.
+
+# Challenge
+I implemented 3 new features for the shell.
+
+## File Creation
+You could already create files using redirection:
+    $ echo > newfile
+
+But it would be nice if the `touch` command existed. This makes the shell more fun, but there was no need to special case touch into the shell, so I just a user/touch program.
+
+## Background Commands
+You can run a command in the background with the '&' character. For example:
+    $ primes
+    $ blah blah lots of primes
+    ls # you type this
+    output of ls
+    more primes
+(Primes is a weird example because it crashes the system in the end)
+
+The background process still outputs to stdout but leaves the prompt open for more commands whose output will also appear on stdout.
+
+This involved a small modification to the shell program to only wait for spawned envs to exit if '&' is not involved.
+
+## Killing Processes
+    $ loop
+    looping forever.....^C$
+    $
+
+I added the ability to kill processes started by the shell with Ctrl-C.
+This implementation is not quite the same as the standard you are familiar with.
+Ctrl-C kills all programs spawned by the shell, including running background processes.
+Ctrl-C does not reset the current prompt line.
+
+The Ctrl-C handling is handled in the kernel. The handler is activated by a case in the keyboard handler. The ctrl-c handler kills any envs which have been registered as kill targets. There is a system call, sys_env_set_kill_target, which registers an env that the caller has access to modify to be a kill target. This way, the shell can set envs that it spawns to be kill targets but those programs can't take over because they don't have access to set the shell to be a kill target and there is not way to unset themselves from being kill target.
+
+To test this I added a user/loop program that loops forever, printing once in a while.

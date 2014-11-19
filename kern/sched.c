@@ -29,9 +29,53 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+    // But actually it's not simple round-robin scheduling!
+    // This scheduler has three priorities,
+    // ENV_PRI_LOW, ENV_PRI_MID, and ENV_PRI_MAX.
+    // Environments get a number of cycles roughly proportional
+    // to their priority. Priorities can be changed at runtime
+    // using sys_renice.
 
-	// sched_halt never returns
-	sched_halt();
+    if (curenv == NULL) {
+        int i_base = 0;
+        int i_linear;
+        for (i_linear = 0; i_linear < NENV; i_linear++) {
+            int i = (i_base + i_linear) % NENV;
+            if (envs[i].env_status == ENV_RUNNABLE) {
+                // Switching to new env.
+                envs[i].env_sched_counter = envs[i].env_priority;
+                env_run(&envs[i]);
+            }
+        }
+        // sched_halt never returns
+        sched_halt();
+    } else {
+        if (curenv->env_sched_counter > 0) {
+            // Env has more time.
+            curenv->env_sched_counter -= 1;
+            env_run(curenv);
+        }
+
+        int i_base = ENVX(curenv->env_id) + 1;
+        int i_linear;
+        for (i_linear = 0; i_linear < NENV; i_linear++) {
+            int i = (i_base + i_linear) % NENV;
+            if (envs[i].env_status == ENV_RUNNABLE) {
+                // Switching to new env.
+                envs[i].env_sched_counter = envs[i].env_priority;
+                env_run(&envs[i]);
+            }
+        }
+        if (curenv->env_status == ENV_RUNNABLE || curenv->env_status == ENV_RUNNING) {
+            // No other envs.
+            curenv->env_sched_counter = 1;
+            env_run(curenv);
+        }
+        // sched_halt never returns
+        sched_halt();
+    }
+
+    panic("sched_halt returned");
 }
 
 // Halt this CPU when there is nothing to do. Wait until the
@@ -41,14 +85,17 @@ void
 sched_halt(void)
 {
 	int i;
+    // cprintf("sched_halt start\n");
 
 	// For debugging and testing purposes, if there are no runnable
 	// environments in the system, then drop into the kernel monitor.
 	for (i = 0; i < NENV; i++) {
 		if ((envs[i].env_status == ENV_RUNNABLE ||
 		     envs[i].env_status == ENV_RUNNING ||
-		     envs[i].env_status == ENV_DYING))
-			break;
+		     envs[i].env_status == ENV_DYING)) {
+            // cprintf("sched halt breaking\n");
+            break;
+        }
 	}
 	if (i == NENV) {
 		cprintf("No runnable environments in the system!\n");
@@ -69,12 +116,13 @@ sched_halt(void)
 	unlock_kernel();
 
 	// Reset stack pointer, enable interrupts and then halt.
+    // cprintf("GOODBYE\n");
 	asm volatile (
 		"movl $0, %%ebp\n"
 		"movl %0, %%esp\n"
 		"pushl $0\n"
 		"pushl $0\n"
-		"sti\n"
+        "sti\n"
 		"1:\n"
 		"hlt\n"
 		"jmp 1b\n"

@@ -296,11 +296,45 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 	return 0;
 }
 
+static int
+copy_shared_pages_helper(envid_t envid, unsigned pn)
+{
+    void *va = (void*)(pn * PGSIZE);
+
+    // Abort if page table is not present.
+    pde_t pde = uvpd[pn / (PGSIZE / sizeof(pte_t))];
+    if (!(pde & PTE_P)) {
+        return 0;
+    }
+
+    // Analyze pte
+    pte_t pte = uvpt[pn];
+    int perms = pte ^ PTE_ADDR(pte);
+    bool present = 0 != (perms & PTE_P);
+    bool share = 0 != (perms & PTE_SHARE);
+
+    if (present && share) {
+        // Copy shared page.
+        if (sys_page_map(0, va, envid, va, perms & PTE_SYSCALL) < 0)
+            panic("copy_shared_pages_helper failed while mapping a page");
+    } else {
+        // cprintf("duppage nop\n");
+        // Don't map anything for non-present pages.
+    }
+    return 0;
+}
+
 // Copy the mappings for shared pages into the child address space.
 static int
 copy_shared_pages(envid_t child)
 {
-	// LAB 5: Your code here.
-	return 0;
+    // LAB 5: Your code here.
+    // Set up child mappings.
+    // cprintf("setting up child mappings\n");
+    unsigned pn;
+    for (pn = 0; pn < UTOP / PGSIZE; pn++) {
+        // cprintf("considering pn:%d va:%p\n", pn, pn * PGSIZE); 
+        copy_shared_pages_helper(child, pn);
+    }
+    return 0;
 }
-

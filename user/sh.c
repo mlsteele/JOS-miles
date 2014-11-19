@@ -23,6 +23,7 @@ runcmd(char* s)
 {
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
 	int argc, c, i, r, p[2], fd, pipe_child;
+    bool background = false;
 
 	pipe_child = 0;
 	gettoken(s, 0);
@@ -54,9 +55,18 @@ again:
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
 
-			// LAB 5: Your code here.
-			panic("< redirection not implemented");
-			break;
+            // LAB 5: Your code here.
+            // Open an fd t
+            if ((fd = open(t, 0)) < 0) {
+				cprintf("open %s for read: %e", t, fd);
+				exit();
+            }
+            // Make sure t is open on fd 0
+			if (fd != 0) {
+				dup(fd, 0);
+				close(fd);
+			}
+            break;
 
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
@@ -103,6 +113,9 @@ again:
 			}
 			panic("| not implemented");
 			break;
+
+        case '&':   // Background
+            background = true;
 
 		case 0:		// String is complete
 			// Run the current command!
@@ -152,7 +165,8 @@ runit:
 	if (r >= 0) {
 		if (debug)
 			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
-		wait(r);
+        if (!background)
+            wait(r);
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
@@ -313,6 +327,9 @@ umain(int argc, char **argv)
 		if (debug)
 			cprintf("FORK: %d\n", r);
 		if (r == 0) {
+            // Make the command killable.
+            if (sys_env_set_kill_target(0) < 0)
+                panic("Shell failed to env as killable");
 			runcmd(buf);
 			exit();
 		} else
