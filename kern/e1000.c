@@ -1,6 +1,9 @@
 #include <kern/e1000.h>
 
 #include <inc/assert.h>
+#include <kern/pmap.h>
+
+volatile uint32_t *bar0;
 
 // LAB 6: Your driver code here
 void
@@ -36,8 +39,24 @@ debug_pci_func(struct pci_func *pcif)
 int
 e1000h_enable(struct pci_func *pcif)
 {
+    cprintf("e1000h_enable start\n");
     debug_pci_func(pcif);
+    // Fill in the BAR entries and irq_line of pcif.
     pci_func_enable(pcif);
     debug_pci_func(pcif);
+
+    // Map some memory for the BAR.
+    bar0 = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+
+    // Make sure the mapping is correct.
+    // Check the device status register (section 13.4.2)
+    // 4 byte register that starts at byte 8 of bar0.
+    // 0x80080783 indicates a full duplex link is up
+    // at 1000 MB/s, among other things.
+    uint32_t status = *(bar0 + 2);
+    cprintf("e1000h status: %p\n", status);
+    assert(0x80080783 == status);
+
+    cprintf("e1000h_enable return\n");
     return 0;
 }
