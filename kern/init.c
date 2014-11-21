@@ -16,6 +16,7 @@
 #include <kern/spinlock.h>
 #include <kern/time.h>
 #include <kern/pci.h>
+#include <kern/e1000.h>
 
 static void boot_aps(void);
 
@@ -63,6 +64,16 @@ i386_init(void)
 
 	// Start fs.
 	ENV_CREATE(fs_fs, ENV_TYPE_FS);
+
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
+    e1000h_test();
 
 #if !defined(TEST_NO_NS)
 	// Start ns.

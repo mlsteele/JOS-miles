@@ -2,17 +2,22 @@
 #include <kern/e1000.h>
 
 #include <inc/assert.h>
+#include <inc/string.h>
 #include <kern/e1000_hw.h>
 #include <kern/pmap.h>
 
+// Maximum size from manual section 3.3.3
+#define TX_RING_SIZE 32
+#define TX_MAX_PACKET_SIZE 16288
+
 struct tx_desc {
-    uint64_t addr;
-    uint16_t length;
-    uint8_t cso;
-    uint8_t cmd;
-    uint8_t status;
-    uint8_t css;
-    uint16_t special;
+    uint64_t desc_addr;
+    uint16_t desc_length;
+    uint8_t desc_cso;
+    uint8_t desc_cmd;
+    uint8_t desc_status;
+    uint8_t desc_css;
+    uint16_t desc_special;
 };
 
 // Volatility notes
@@ -20,7 +25,10 @@ struct tx_desc {
 static uint32_t volatile *bar0;
 
 // Ring of transmit descriptors.
-static struct tx_desc volatile tx_desc_list[32] __attribute__((aligned(16)));
+static struct tx_desc volatile tx_desc_list[TX_RING_SIZE] __attribute__((aligned(16)));
+
+// Packet buffers
+static uint8_t tx_buffers[TX_RING_SIZE][TX_MAX_PACKET_SIZE];
 
 // Convert a register offset into a pointer to virtual memory.
 void
@@ -63,6 +71,27 @@ e1000h_reg(uint32_t offset)
 static void
 e1000h_init_transmit()
 {
+    int i;
+    struct PageInfo * pp;
+    struct tx_desc desc_template = {
+        .desc_addr = 0,
+        .desc_length = 0,
+        .desc_cso = 0,
+        .desc_cmd = 0,
+        .desc_status = E1000_TXD_STAT_DD,
+        .desc_css = 0,
+        .desc_special = 0,
+    };
+
+    // Initialize the descriptors.
+    // memset(&tx_desc_list, 0, sizeof(tx_desc_list));
+    for (i = 0; i < TX_RING_SIZE; i++) {
+        tx_desc_list[i] = desc_template;
+    }
+
+    // Zero the buffers.
+    memset(&tx_buffers, 0, sizeof(tx_buffers));
+
     // Point TDBAL to the descriptor list. (Should be 16 byte aligned)
     *e1000h_reg(E1000_TDBAL) = PADDR(&tx_desc_list);
 
@@ -119,4 +148,63 @@ e1000h_enable(struct pci_func *pcif)
 
     cprintf("e1000h_enable return\n");
     return 0;
+}
+
+// Send a packet located at `packet` of length `len`.
+// 0 < `len`
+// Returns 0 on success or a negative number to indicate failure.
+int
+e1000h_send(void *packet, size_t size)
+{
+    cprintf("e1000h_send size: %d\n", size);
+
+    volatile struct tx_desc *desc;
+    void *buf;
+    uint32_t tail;
+    uint32_t head;
+    bool slot_available;
+
+    if (size <= 0) return -1;
+    if (size > TX_MAX_PACKET_SIZE) return -1;
+
+    // Find a spot in the queue.
+    head = *e1000h_reg(E1000_TDH);
+    tail = *e1000h_reg(E1000_TDT);
+    cprintf("e1000 head: %d, tail: %d\n", head, tail);
+    desc = &tx_desc_list[tail];
+    slot_available = (desc->desc_status & E1000_TXD_STAT_DD);
+    if (!slot_available) {
+        cprintf("e1000h: Out of descriptors. Dropping packet.\n");
+        return -1;
+    }
+
+    // Copy payload.
+    buf = &tx_buffers[TX_MAX_PACKET_SIZE];
+    memcpy(buf, packet, size);
+
+    // Write descriptor.
+    desc->desc_addr = PADDR(buf);
+    desc->desc_length = size;
+    desc->desc_cso = 0;
+    desc->desc_cmd = (E1000_TXD_CMD_RS >> 24);
+    desc->desc_status = 0;
+    desc->desc_css = 0;
+    desc->desc_special = 0;
+
+    // Increment tail.
+    tail += 1;
+    tail %= TX_RING_SIZE;
+    *e1000h_reg(E1000_TDT) = tail;
+
+    return 0;
+}
+
+void
+e1000h_test(void)
+{
+    uint8_t buf[400];
+    buf[0] = 0xA;
+    buf[300] = 0xB;
+    buf[400] = 0xC;
+    e1000h_send(&buf, 300);
 }
