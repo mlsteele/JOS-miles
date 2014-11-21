@@ -8,7 +8,7 @@
 
 // Maximum size from manual section 3.3.3
 #define TX_RING_SIZE 32
-#define TX_MAX_PACKET_SIZE 16288
+#define TX_MAX_PACKET_SIZE 16288 // in bytes
 
 struct tx_desc {
     uint64_t desc_addr;
@@ -184,9 +184,11 @@ e1000h_send(void *packet, size_t size)
 
     // Write descriptor.
     desc->desc_addr = PADDR(buf);
+    assert(desc->desc_addr != ((uint32_t)NULL));
     desc->desc_length = size;
+    assert(desc->desc_length != 0);
     desc->desc_cso = 0;
-    desc->desc_cmd = (E1000_TXD_CMD_RS >> 24);
+    desc->desc_cmd = (E1000_TXD_CMD_RS >> 24) | (E1000_TXD_CMD_EOP >> 24);
     desc->desc_status = 0;
     desc->desc_css = 0;
     desc->desc_special = 0;
