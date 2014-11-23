@@ -503,7 +503,7 @@ sys_env_set_kill_target(envid_t envid)
     return 0;
 }
 
-// Send a network packet
+// Transmit a network packet
 //
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_INVAL on invalid parameters.
@@ -512,7 +512,7 @@ sys_packet_transmit(void *packet, size_t size)
 {
     int r;
     user_mem_assert(curenv, packet, size, PTE_U);
-    r = e1000_send(packet, size);
+    r = e1000_transmit(packet, size);
     return (r >= 0) ? 0 : r;
 }
 

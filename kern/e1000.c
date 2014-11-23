@@ -151,16 +151,16 @@ e1000_enable(struct pci_func *pcif)
     return 0;
 }
 
-// Send a packet located at `packet` of `size` byts long.
+// Transmit a packet located at `packet` of `size` byts long.
 // Returns:
 //   size  if the packet was added to the tx queue.
 //   0  if the packet was discarded due to overload.
 //      This is considered success, but the user should attempt a resend later on.
 //   -E_INVAL  on invalid parameters.
 int
-e1000_send(void *packet, size_t size)
+e1000_transmit(void *packet, size_t size)
 {
-    cprintf("e1000_send size: %d\n", size);
+    cprintf("e1000_transmit size: %d\n", size);
 
     volatile struct tx_desc *desc;
     // note: `packet` is the user supplied buffer,
@@ -212,7 +212,7 @@ e1000_send(void *packet, size_t size)
 }
 
 void
-e1000_test_send(void)
+e1000_test_transmit(void)
 {
     int r;
     uint8_t buf[16];
@@ -224,7 +224,7 @@ e1000_test_send(void)
     buf[7] = 0xC;
     buf[8] = 0xD;
 
-    if ((r = e1000_send(&buf, 8)) < 0) {
-        panic("send failed: %d\n", r);
+    if ((r = e1000_transmit(&buf, 8)) < 0) {
+        panic("transmit failed: %d\n", r);
     }
 }
