@@ -512,7 +512,7 @@ sys_packet_transmit(void *packet, size_t size)
 {
     int r;
     user_mem_assert(curenv, packet, size, PTE_U);
-    r = e1000h_send(packet, size);
+    r = e1000_send(packet, size);
     return (r >= 0) ? 0 : r;
 }
 

@@ -62,15 +62,15 @@ debug_pci_func(struct pci_func *pcif)
 
 // offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
 static volatile uint32_t*
-e1000h_reg(uint32_t offset)
+e1000_reg(uint32_t offset)
 {
     return bar0 + (offset / 4);
 }
 
-// Initialize the e1000h for transmission.
-// Follows the steps in section 14.5 of the e1000h manual.
+// Initialize the e1000 for transmission.
+// Follows the steps in section 14.5 of the e1000 manual.
 static void
-e1000h_init_transmit()
+e1000_init_transmit()
 {
     int i;
     struct PageInfo * pp;
@@ -94,14 +94,14 @@ e1000h_init_transmit()
     memset(&tx_buffers, 0, sizeof(tx_buffers));
 
     // Point TDBAL to the descriptor list. (Should be 16 byte aligned)
-    *e1000h_reg(E1000_TDBAL) = PADDR(&tx_desc_list);
+    *e1000_reg(E1000_TDBAL) = PADDR(&tx_desc_list);
 
     // Set TDLEN to the length of the descriptor list. (must be 128 byte aligned)
-    *e1000h_reg(E1000_TDLEN) = sizeof(tx_desc_list);
+    *e1000_reg(E1000_TDLEN) = sizeof(tx_desc_list);
 
     // Ensure the head and tail regs are initialized to 0x0b;
-    *e1000h_reg(E1000_TDH) = 0;
-    *e1000h_reg(E1000_TDT) = 0;
+    *e1000_reg(E1000_TDH) = 0;
+    *e1000_reg(E1000_TDT) = 0;
 
     // Initialize the Transmit Control Register
     uint32_t tctl = 0;
@@ -109,9 +109,9 @@ e1000h_init_transmit()
     tctl |= E1000_TCTL_PSP;
     tctl |= 0x00000100; // Set E1000_TCTL_CT to 10h
     tctl |= 0x00040000; // Set E1000_TCTL_COLD to 40h
-    *e1000h_reg(E1000_TCTL) = tctl;
+    *e1000_reg(E1000_TCTL) = tctl;
 
-    // See e1000h manual section 13.4.35 table 13-77 
+    // See e1000 manual section 13.4.35 table 13-77
     const uint32_t ipgt = 10;
     const uint32_t ipgr1 = 8;
     const uint32_t ipgr2 = 6;
@@ -119,15 +119,15 @@ e1000h_init_transmit()
     tipg |= ipgt;
     tipg |= ipgr1 << 10;
     tipg |= ipgr2 << 20;
-    *e1000h_reg(E1000_TIPG) = tipg;
+    *e1000_reg(E1000_TIPG) = tipg;
 }
 
 // Returns 0 on success.
 // Returns a negative value on failure.
 int
-e1000h_enable(struct pci_func *pcif)
+e1000_enable(struct pci_func *pcif)
 {
-    cprintf("e1000h_enable start\n");
+    cprintf("e1000_enable start\n");
     debug_pci_func(pcif);
     // Fill in the BAR entries and irq_line of pcif.
     pci_func_enable(pcif);
@@ -141,13 +141,13 @@ e1000h_enable(struct pci_func *pcif)
     // 4 byte register that starts at byte 8 of bar0.
     // 0x80080783 indicates a full duplex link is up
     // at 1000 MB/s, among other things.
-    uint32_t status = *e1000h_reg(E1000_STATUS);
-    cprintf("e1000h status: %p\n", status);
+    uint32_t status = *e1000_reg(E1000_STATUS);
+    cprintf("e1000 status: %p\n", status);
     assert(0x80080783 == status);
 
-    e1000h_init_transmit();
+    e1000_init_transmit();
 
-    cprintf("e1000h_enable return\n");
+    cprintf("e1000_enable return\n");
     return 0;
 }
 
@@ -158,9 +158,9 @@ e1000h_enable(struct pci_func *pcif)
 //      This is considered success, but the user should attempt a resend later on.
 //   -E_INVAL  on invalid parameters.
 int
-e1000h_send(void *packet, size_t size)
+e1000_send(void *packet, size_t size)
 {
-    cprintf("e1000h_send size: %d\n", size);
+    cprintf("e1000_send size: %d\n", size);
 
     volatile struct tx_desc *desc;
     // note: `packet` is the user supplied buffer,
@@ -174,13 +174,13 @@ e1000h_send(void *packet, size_t size)
     if (size > TX_MAX_PACKET_SIZE) return -E_INVAL;
 
     // Find a spot in the queue.
-    head = *e1000h_reg(E1000_TDH);
-    tail = *e1000h_reg(E1000_TDT);
+    head = *e1000_reg(E1000_TDH);
+    tail = *e1000_reg(E1000_TDT);
     cprintf("e1000 head: %d, tail: %d\n", head, tail);
     desc = &tx_desc_list[tail];
     slot_available = (desc->desc_status & E1000_TXD_STAT_DD);
     if (!slot_available) {
-        cprintf("e1000h: Out of descriptors. Dropping packet.\n");
+        cprintf("e1000: Out of descriptors. Dropping packet.\n");
         return 0;
     }
 
@@ -206,13 +206,13 @@ e1000h_send(void *packet, size_t size)
     // Increment tail.
     tail += 1;
     tail %= TX_RING_SIZE;
-    *e1000h_reg(E1000_TDT) = tail;
+    *e1000_reg(E1000_TDT) = tail;
 
     return size;
 }
 
 void
-e1000h_test_send(void)
+e1000_test_send(void)
 {
     int r;
     uint8_t buf[16];
@@ -224,7 +224,7 @@ e1000h_test_send(void)
     buf[7] = 0xC;
     buf[8] = 0xD;
 
-    if ((r = e1000h_send(&buf, 8)) < 0) {
+    if ((r = e1000_send(&buf, 8)) < 0) {
         panic("send failed: %d\n", r);
     }
 }
