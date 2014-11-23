@@ -134,3 +134,9 @@ sys_env_set_kill_target(envid_t envid)
 {
 	return syscall(SYS_env_set_kill_target, 1, envid, 0, 0, 0, 0);
 }
+
+int
+sys_packet_transmit(void *packet, size_t size)
+{
+	return syscall(SYS_env_set_kill_target, 1, packet, size, 0, 0, 0);
+}

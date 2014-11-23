@@ -153,9 +153,9 @@ e1000h_enable(struct pci_func *pcif)
 // Send a packet located at `packet` of `size` byts long.
 // Returns:
 //   size  if the packet was added to the tx queue.
-//   0     if the packet was discarded due to overload.
-//         This is considered success, but the user should attempt a resend later on.
-//   -1    to indicate failure.
+//   0  if the packet was discarded due to overload.
+//      This is considered success, but the user should attempt a resend later on.
+//   -E_INVAL  on invalid parameters.
 int
 e1000h_send(void *packet, size_t size)
 {
@@ -169,8 +169,8 @@ e1000h_send(void *packet, size_t size)
     uint32_t head;
     bool slot_available;
 
-    if (size <= 0) return -1;
-    if (size > TX_MAX_PACKET_SIZE) return -1;
+    if (size <= 0) return -E_INVAL;
+    if (size > TX_MAX_PACKET_SIZE) return -E_INVAL;
 
     // Find a spot in the queue.
     head = *e1000h_reg(E1000_TDH);

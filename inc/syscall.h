@@ -20,6 +20,7 @@ enum {
 	SYS_time_msec,
 	SYS_renice,
 	SYS_env_set_kill_target,
+	SYS_packet_transmit,
 	NSYSCALLS
 };
 

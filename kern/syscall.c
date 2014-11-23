@@ -502,6 +502,18 @@ sys_env_set_kill_target(envid_t envid)
     return 0;
 }
 
+// Send a network packet
+//
+// Returns 0 on success, < 0 on error.  Errors are:
+//	-E_INVAL on invalid parameters.
+sys_packet_transmit(void *packet, size_t size)
+{
+    int r;
+    user_mem_assert(curenv, packet, size, PTE_U);
+    r = e1000h_send(packet, size);
+    return (r >= 0) ? 0 : r;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
