@@ -65,8 +65,8 @@ i386_init(void)
 	// Start fs.
 	ENV_CREATE(fs_fs, ENV_TYPE_FS);
 
-    e1000h_test();
-    e1000h_test();
+    // Test e1000
+    e1000h_test_send();
 
 #if !defined(TEST_NO_NS)
 	// Start ns.

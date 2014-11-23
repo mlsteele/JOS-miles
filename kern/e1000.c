@@ -3,6 +3,7 @@
 
 #include <inc/assert.h>
 #include <inc/string.h>
+#include <inc/error.h>
 #include <kern/e1000_hw.h>
 #include <kern/pmap.h>
 
@@ -184,9 +185,12 @@ e1000h_send(void *packet, size_t size)
     }
 
     // Copy payload.
-    buf = (uint8_t*)&tx_buffers[TX_MAX_PACKET_SIZE];
-    memcpy(&buf, &packet, size);
+    buf = &tx_buffers[tail][0];
+    memcpy(buf, packet, size);
+    // Check that the copy worked a little.
     assert(buf[0] == ((uint8_t*)packet)[0]);
+    // Check that the buffer is still right (had a bug once).
+    assert(&tx_buffers[tail][0] == buf);
 
     // Write descriptor.
     desc->desc_addr = PADDR(buf);
@@ -208,16 +212,18 @@ e1000h_send(void *packet, size_t size)
 }
 
 void
-e1000h_test(void)
+e1000h_test_send(void)
 {
     int r;
     uint8_t buf[16];
+
     memset(buf, 0, 16);
 
     buf[0] = 0xA;
     buf[1] = 0xB;
     buf[7] = 0xC;
     buf[8] = 0xD;
+
     if ((r = e1000h_send(&buf, 8)) < 0) {
         panic("send failed: %d\n", r);
     }

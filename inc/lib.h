@@ -62,6 +62,7 @@ int	sys_ipc_recv(void *rcv_pg);
 unsigned int sys_time_msec(void);
 int	sys_renice(envid_t env, int priority);
 int	sys_env_set_kill_target(envid_t env);
+int	sys_packet_transmit(void *packet, size_t size);
 
 // This must be inlined.  Exercise for reader: why?
 static __inline envid_t __attribute__((always_inline))

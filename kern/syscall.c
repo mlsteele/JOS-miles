@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 static void cprintperm(int perm) {
     const int PTE_COW = 0x800;
@@ -506,6 +507,7 @@ sys_env_set_kill_target(envid_t envid)
 //
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_INVAL on invalid parameters.
+static int
 sys_packet_transmit(void *packet, size_t size)
 {
     int r;
@@ -572,6 +574,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_env_set_kill_target:
             // int sys_env_set_kill_target(envid_t envid)
             return sys_env_set_kill_target((envid_t)a1);
+        case SYS_packet_transmit:
+            return sys_packet_transmit((void*)a1, (size_t)a2);
 	}
 
     return -E_INVAL;
