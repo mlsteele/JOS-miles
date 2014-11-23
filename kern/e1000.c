@@ -164,7 +164,7 @@ e1000h_send(void *packet, size_t size)
     volatile struct tx_desc *desc;
     // note: `packet` is the user supplied buffer,
     //       `buf` is the driver-internal tx buffer.
-    void *buf;
+    uint8_t *buf;
     uint32_t tail;
     uint32_t head;
     bool slot_available;
@@ -184,8 +184,9 @@ e1000h_send(void *packet, size_t size)
     }
 
     // Copy payload.
-    buf = &tx_buffers[TX_MAX_PACKET_SIZE];
-    memcpy(buf, packet, size);
+    buf = (uint8_t*)&tx_buffers[TX_MAX_PACKET_SIZE];
+    memcpy(&buf, &packet, size);
+    assert(buf[0] == ((uint8_t*)packet)[0]);
 
     // Write descriptor.
     desc->desc_addr = PADDR(buf);
@@ -210,13 +211,14 @@ void
 e1000h_test(void)
 {
     int r;
-    uint8_t buf[10];
+    uint8_t buf[16];
+    memset(buf, 0, 16);
 
     buf[0] = 0xA;
     buf[1] = 0xB;
-    buf[5] = 0xC;
-    buf[6] = 0xD;
-    if ((r = e1000h_send(&buf, 4)) != 0) {
+    buf[7] = 0xC;
+    buf[8] = 0xD;
+    if ((r = e1000h_send(&buf, 8)) < 0) {
         panic("send failed: %d\n", r);
     }
 }
