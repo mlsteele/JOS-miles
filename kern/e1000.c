@@ -160,8 +160,6 @@ e1000_enable(struct pci_func *pcif)
 int
 e1000_transmit(void *packet, size_t size)
 {
-    cprintf("e1000_transmit size: %d\n", size);
-
     volatile struct tx_desc *desc;
     // note: `packet` is the user supplied buffer,
     //       `buf` is the driver-internal tx buffer.
@@ -176,7 +174,6 @@ e1000_transmit(void *packet, size_t size)
     // Find a spot in the queue.
     head = *e1000_reg(E1000_TDH);
     tail = *e1000_reg(E1000_TDT);
-    cprintf("e1000 head: %d, tail: %d\n", head, tail);
     desc = &tx_desc_list[tail];
     slot_available = (desc->desc_status & E1000_TXD_STAT_DD);
     if (!slot_available) {

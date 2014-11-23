@@ -34,9 +34,6 @@ output(envid_t ns_envid)
         // Send packet to device driver.
         data = pkt->jp_data;
         len = pkt->jp_len;
-        cprintf("out packet from: %p\n", from_env);
-        cprintf("out packet data: %p\n", data);
-        cprintf("out packet len: %d\n", len);
         if (len <= 0) {
             cprintf("*SKIP*\n");
             continue;
