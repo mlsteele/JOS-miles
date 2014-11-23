@@ -150,15 +150,20 @@ e1000h_enable(struct pci_func *pcif)
     return 0;
 }
 
-// Send a packet located at `packet` of length `len`.
-// 0 < `len`
-// Returns 0 on success or a negative number to indicate failure.
+// Send a packet located at `packet` of `size` byts long.
+// Returns:
+//   size  if the packet was added to the tx queue.
+//   0     if the packet was discarded due to overload.
+//         This is considered success, but the user should attempt a resend later on.
+//   -1    to indicate failure.
 int
 e1000h_send(void *packet, size_t size)
 {
     cprintf("e1000h_send size: %d\n", size);
 
     volatile struct tx_desc *desc;
+    // note: `packet` is the user supplied buffer,
+    //       `buf` is the driver-internal tx buffer.
     void *buf;
     uint32_t tail;
     uint32_t head;
@@ -175,7 +180,7 @@ e1000h_send(void *packet, size_t size)
     slot_available = (desc->desc_status & E1000_TXD_STAT_DD);
     if (!slot_available) {
         cprintf("e1000h: Out of descriptors. Dropping packet.\n");
-        return -1;
+        return 0;
     }
 
     // Copy payload.
@@ -198,15 +203,20 @@ e1000h_send(void *packet, size_t size)
     tail %= TX_RING_SIZE;
     *e1000h_reg(E1000_TDT) = tail;
 
-    return 0;
+    return size;
 }
 
 void
 e1000h_test(void)
 {
-    uint8_t buf[400];
+    int r;
+    uint8_t buf[10];
+
     buf[0] = 0xA;
-    buf[300] = 0xB;
-    buf[400] = 0xC;
-    e1000h_send(&buf, 300);
+    buf[1] = 0xB;
+    buf[5] = 0xC;
+    buf[6] = 0xD;
+    if ((r = e1000h_send(&buf, 4)) != 0) {
+        panic("send failed: %d\n", r);
+    }
 }

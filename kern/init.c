@@ -67,13 +67,6 @@ i386_init(void)
 
     e1000h_test();
     e1000h_test();
-    e1000h_test();
-    e1000h_test();
-    e1000h_test();
-    e1000h_test();
-    e1000h_test();
-    e1000h_test();
-    e1000h_test();
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
