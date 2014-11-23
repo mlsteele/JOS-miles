@@ -210,21 +210,3 @@ e1000_transmit(void *packet, size_t size)
 
     return size;
 }
-
-void
-e1000_test_transmit(void)
-{
-    int r;
-    uint8_t buf[16];
-
-    memset(buf, 0, 16);
-
-    buf[0] = 0xA;
-    buf[1] = 0xB;
-    buf[7] = 0xC;
-    buf[8] = 0xD;
-
-    if ((r = e1000_transmit(&buf, 8)) < 0) {
-        panic("transmit failed: %d\n", r);
-    }
-}
