@@ -111,20 +111,6 @@ sys_exofork(void)
     return child->env_id;
 }
 
-// Set envid's env_kill_target.
-//
-// Returns 0 on success, < 0 on error.  Errors are:
-//	-E_BAD_ENV if environment envid doesn't currently exist,
-//		or the caller doesn't have permission to change envid.
-static int
-sys_env_set_kill_target(envid_t envid)
-{
-    struct Env *env;
-    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
-    env->env_kill_target = 1;
-    return 0;
-}
-
 // Set envid's env_status to status, which must be ENV_RUNNABLE
 // or ENV_NOT_RUNNABLE.
 //
@@ -471,7 +457,14 @@ sys_ipc_recv(void *dstva)
     panic("sched_yield returned");
 }
 
-// Change the priority of a process.
+// Return the current time.
+static int
+sys_time_msec(void)
+{
+    // LAB 6: Your code here.
+    return time_msec();
+}
+
 // - priority must be one of EnvPriority.
 //	-E_BAD_ENV if envd doesn't currently exist,
 //		or the caller doesn't have permission to change it.
@@ -494,12 +487,19 @@ sys_renice(envid_t envid, int priority)
     return 0;
 }
 
-// Return the current time.
+// Change the priority of a process.
+// Set envid's env_kill_target.
+//
+// Returns 0 on success, < 0 on error.  Errors are:
+//	-E_BAD_ENV if environment envid doesn't currently exist,
+//		or the caller doesn't have permission to change envid.
 static int
-sys_time_msec(void)
+sys_env_set_kill_target(envid_t envid)
 {
-    // LAB 6: Your code here.
-    return time_msec();
+    struct Env *env;
+    if (envid2env(envid, &env, 1) != 0) return -E_BAD_ENV;
+    env->env_kill_target = 1;
+    return 0;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -553,13 +553,13 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void*)a3, (unsigned)a4);
         case SYS_ipc_recv:
             return sys_ipc_recv((void*)a1);
+        case SYS_time_msec:
+            return sys_time_msec();
         case SYS_renice:
             return sys_renice((envid_t)a1, (int)a2);
         case SYS_env_set_kill_target:
             // int sys_env_set_kill_target(envid_t envid)
             return sys_env_set_kill_target((envid_t)a1);
-        case SYS_time_msec:
-            return sys_time_msec();
 	}
 
     return -E_INVAL;

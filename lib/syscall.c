@@ -88,12 +88,6 @@ sys_page_unmap(envid_t envid, void *va)
 // sys_exofork is inlined in lib.h
 
 int
-sys_env_set_kill_target(envid_t envid)
-{
-	return syscall(SYS_env_set_kill_target, 1, envid, 0, 0, 0, 0);
-}
-
-int
 sys_env_set_status(envid_t envid, int status)
 {
 	return syscall(SYS_env_set_status, 1, envid, status, 0, 0, 0);
@@ -133,4 +127,10 @@ int
 sys_renice(envid_t env, int priority)
 {
 	return syscall(SYS_renice, 1, env, priority, 0, 0, 0);
+}
+
+int
+sys_env_set_kill_target(envid_t envid)
+{
+	return syscall(SYS_env_set_kill_target, 1, envid, 0, 0, 0, 0);
 }
