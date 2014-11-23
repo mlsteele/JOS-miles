@@ -1,0 +1,5 @@
+# Question 1
+How did you structure your transmit implementation? In particular, what do you do if the transmit ring is full?
+
+My transmit implementation drops the packet if the ring is full. It alerts the user to this fact using a return from the driver (and syscall). The user process using the system interface is responsible for checking whether their packet succeeded completely if they care.
+The return status is set up so as not to disturb users who don't care if a packet is dropped. A positive value (length of the packet) means complete success, a zero means a dropped packet (still somewhat a success), and a negative value indicates utter disaster.
