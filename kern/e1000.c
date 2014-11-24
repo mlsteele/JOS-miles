@@ -9,7 +9,10 @@
 
 // Maximum size from manual section 3.3.3
 #define TX_RING_SIZE 32
-#define TX_MAX_PACKET_SIZE 16288 // in bytes
+#define TX_MAX_PACKET_SIZE 1518 // in bytes
+
+#define RX_RING_SIZE 128
+#define RX_MAX_PACKET_SIZE 2048 // in bytes
 
 struct tx_desc {
     uint64_t desc_addr;
@@ -21,6 +24,15 @@ struct tx_desc {
     uint16_t desc_special;
 };
 
+struct rx_desc {
+    uint64_t desc_addr;
+    uint16_t desc_length;
+    uint16_t desc_checksum;
+    uint8_t desc_status;
+    uint8_t desc_errors;
+    uint16_t desc_special;
+};
+
 // Volatility notes
 // http://stackoverflow.com/questions/2304729/how-do-i-declare-an-array-created-using-malloc-to-be-volatile-in-c
 static uint32_t volatile *bar0;
@@ -28,8 +40,14 @@ static uint32_t volatile *bar0;
 // Ring of transmit descriptors.
 static struct tx_desc volatile tx_desc_list[TX_RING_SIZE] __attribute__((aligned(16)));
 
-// Packet buffers
+// Packet buffers for transmit.
 static uint8_t tx_buffers[TX_RING_SIZE][TX_MAX_PACKET_SIZE];
+
+// Ring of receive descriptors.
+static struct rx_desc volatile rx_desc_list[RX_RING_SIZE] __attribute__((aligned(16)));
+
+// Packet buffers for receiving.
+static uint8_t volatile rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((aligned(16)));
 
 // Convert a register offset into a pointer to virtual memory.
 void
@@ -73,7 +91,6 @@ static void
 e1000_init_transmit()
 {
     int i;
-    struct PageInfo * pp;
     struct tx_desc desc_template = {
         .desc_addr = 0,
         .desc_length = 0,
@@ -99,9 +116,9 @@ e1000_init_transmit()
     // Set TDLEN to the length of the descriptor list. (must be 128 byte aligned)
     *e1000_reg(E1000_TDLEN) = sizeof(tx_desc_list);
 
-    // Ensure the head and tail regs are initialized to 0x0b;
-    *e1000_reg(E1000_TDH) = 0;
-    *e1000_reg(E1000_TDT) = 0;
+    // Ensure the head and tail regs are initialized to 0b;
+    *e1000_reg(E1000_RDH) = 0;
+    *e1000_reg(E1000_RDT) = 1;
 
     // Initialize the Transmit Control Register
     uint32_t tctl = 0;
@@ -120,6 +137,68 @@ e1000_init_transmit()
     tipg |= ipgr1 << 10;
     tipg |= ipgr2 << 20;
     *e1000_reg(E1000_TIPG) = tipg;
+}
+
+// Initialize the e1000 for receiving.
+// Follows the steps in section 14.4 of the e1000 manual.
+static void
+e1000_init_receive()
+{
+    int i;
+    uint32_t mac_stage;
+    struct rx_desc desc_template = {
+        .desc_addr = 0,
+        .desc_length = 0,
+        .desc_checksum = 0,
+        .desc_status = 0,
+        .desc_errors = 0,
+        .desc_special = 0,
+    };
+
+    // Initialize the descriptors.
+    for (i = 0; i < RX_RING_SIZE; i++) {
+        rx_desc_list[i] = desc_template;
+    }
+
+    // Zero the buffers.
+    memset(&rx_buffers, 0, sizeof(rx_buffers));
+
+    // Program the Receive Address Register(s) (RAL/RAH) with the desired Ethernet addresses.
+    // When writing to this register, always write low-to-high. When clearing this register, always clear high-to-low.
+    // RAL[0]/RAH[0] should always be used to store the Individual Ethernet MAC address of the Ethernet controller.
+    // RAL0 contains the lower 32-bit of the 48-bit Ethernet address.
+    // RAH0 contains the high 32-bit of the 48-bit Ethernet address.
+    // hard-coded MAC 52:54:00:12:34:56
+    *e1000_reg(E1000_RA) = 0x12005452;
+    *e1000_reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
+
+    // Initialize the MTA (Multicast Table Array) to 0b.
+    *e1000_reg(E1000_MTA) = 0;
+
+    // Point Receive Descriptor Base Address (RDBAL) to the descriptor list. (Should be 16 byte aligned)
+    *e1000_reg(E1000_RDBAL) = PADDR(&rx_desc_list);
+
+    // Set the Receive Descriptor Length (RDLEN) to the length of the descriptor list. (must be 128 byte aligned)
+    *e1000_reg(E1000_RDLEN) = sizeof(rx_desc_list);
+
+    // The Receive Descriptor Head and Tail registers are initialized (by hardware) to 0b after a power-on
+    // or a software-initiated Ethernet controller reset. Receive buffers of appropriate size should be
+    // allocated and pointers to these buffers should be stored in the receive descriptor ring. Software
+    // initializes the Receive Descriptor Head (RDH) register and Receive Descriptor Tail (RDT) with the
+    // appropriate head and tail addresses. Head should point to the first valid receive descriptor in the
+    // descriptor ring and tail should point to one descriptor beyond the last valid descriptor in the
+    // descriptor ring.
+    // Initialize the head and tail regs are initialized to 0b;
+    *e1000_reg(E1000_TDH) = 0;
+    *e1000_reg(E1000_TDT) = 1;
+
+    // Initialize the Receive Control Register
+    uint32_t rctl = 0;
+    rctl |= E1000_RCTL_EN;
+    rctl |= E1000_RCTL_BAM;
+    // BSIZE = 00b indicating 2048 size buffers.
+    rctl |= E1000_RCTL_SECRC;
+    *e1000_reg(E1000_RCTL) = rctl;
 }
 
 // Returns 0 on success.
@@ -146,6 +225,7 @@ e1000_enable(struct pci_func *pcif)
     assert(0x80080783 == status);
 
     e1000_init_transmit();
+    e1000_init_receive();
 
     cprintf("e1000_enable return\n");
     return 0;
