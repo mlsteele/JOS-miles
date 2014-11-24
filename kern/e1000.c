@@ -117,8 +117,8 @@ e1000_init_transmit()
     *e1000_reg(E1000_TDLEN) = sizeof(tx_desc_list);
 
     // Ensure the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_RDH) = 0;
-    *e1000_reg(E1000_RDT) = 1;
+    *e1000_reg(E1000_RDH) = 1;
+    *e1000_reg(E1000_RDT) = 0;
 
     // Initialize the Transmit Control Register
     uint32_t tctl = 0;
@@ -231,7 +231,7 @@ e1000_enable(struct pci_func *pcif)
     return 0;
 }
 
-// Transmit a packet located at `packet` of `size` byts long.
+// Transmit a packet located at `packet` of `size` bytes long.
 // Returns:
 //   size  if the packet was added to the tx queue.
 //   0  if the packet was discarded due to overload.
@@ -286,4 +286,20 @@ e1000_transmit(void *packet, size_t size)
     *e1000_reg(E1000_TDT) = tail;
 
     return size;
+}
+
+// Receive a packet to va `dest` that is <= `max_size` bytes long.
+// max_size's above RX_MAX_PACKET_SIZE are not yet supported.
+// Returns:
+//   size  of the packet if one was successfully received and written to `dest`.
+//         Will always be < `max_size`
+//   0  if there was no packet available.
+//   -E_INVAL  on invalid parameters.
+int
+e1000_receive(void *dst, size_t max_size)
+{
+    if (max_size <= 0) return -E_INVAL;
+    if (max_size > RX_MAX_PACKET_SIZE) return -E_INVAL;
+
+    return 0;
 }
