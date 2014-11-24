@@ -158,6 +158,7 @@ e1000_init_receive()
     // Initialize the descriptors.
     for (i = 0; i < RX_RING_SIZE; i++) {
         rx_desc_list[i] = desc_template;
+        rx_desc_list[i].desc_addr = (uint32_t)(&rx_buffers[i][0]);
     }
 
     // Zero the buffers.
@@ -301,5 +302,6 @@ e1000_receive(void *dst, size_t max_size)
     if (max_size <= 0) return -E_INVAL;
     if (max_size > RX_MAX_PACKET_SIZE) return -E_INVAL;
 
+    panic("NOT IMEPL");
     return 0;
 }

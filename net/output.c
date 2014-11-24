@@ -8,14 +8,6 @@ output(envid_t ns_envid)
     // LAB 6: Your code here:
     // 	- read a packet from the network server
     //	- send the packet to the device driver
-    envid_t ns_env;
-
-    // Wait for the network server env to show up.
-    // TODO(miles): Only accept from the net (doesn't work in tests)
-    // cprintf("ns output waiting for ns env\n");
-    // while ((ns_env = ipc_find_env(ENV_TYPE_NS)) == 0) sys_yield();
-    // cprintf("ns output discovered ns env at %p\n", ns_env);
-    ns_env = 0;
 
     while (true) {
         int r;
@@ -27,6 +19,8 @@ output(envid_t ns_envid)
 
         // Read packet from network server.
         ipc_type = ipc_recv(&from_env, (void*)REQVA, NULL);
+        if (from_env != ns_envid)
+            continue;
         if (ipc_type != NSREQ_OUTPUT)
             continue;
         pkt = (struct jif_pkt*)REQVA;

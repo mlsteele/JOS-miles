@@ -21,6 +21,7 @@ enum {
 	SYS_renice,
 	SYS_env_set_kill_target,
 	SYS_packet_transmit,
+	SYS_packet_receive,
 	NSYSCALLS
 };
 

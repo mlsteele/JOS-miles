@@ -503,7 +503,7 @@ sys_env_set_kill_target(envid_t envid)
     return 0;
 }
 
-// Transmit a network packet
+// Transmit a network packet.
 //
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_INVAL on invalid parameters.
@@ -514,6 +514,22 @@ sys_packet_transmit(void *packet, size_t size)
     user_mem_assert(curenv, packet, size, PTE_U);
     r = e1000_transmit(packet, size);
     return (r >= 0) ? 0 : r;
+}
+
+// Receive a packet to va `dest` that is <= `max_size` bytes long.
+// max_size's above 2048 are not yet supported.
+// Returns:
+//   size  of the packet if one was successfully received and written to `dest`.
+//         Will always be < `max_size`
+//   0  if there was no packet available.
+//   -E_INVAL  on invalid parameters.
+static int
+sys_packet_receive(void *dst, size_t max_size)
+{
+    int r;
+    user_mem_assert(curenv, dst, max_size, PTE_U | PTE_W);
+    r = e1000_receive(dst, max_size);
+    return r;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -576,6 +592,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_env_set_kill_target((envid_t)a1);
         case SYS_packet_transmit:
             return sys_packet_transmit((void*)a1, (size_t)a2);
+        case SYS_packet_receive:
+            return sys_packet_receive((void*)a1, (size_t)a2);
 	}
 
     return -E_INVAL;
