@@ -117,8 +117,8 @@ e1000_init_transmit()
     *e1000_reg(E1000_TDLEN) = sizeof(tx_desc_list);
 
     // Ensure the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_RDH) = 1;
-    *e1000_reg(E1000_RDT) = 0;
+    *e1000_reg(E1000_TDH) = 0;
+    *e1000_reg(E1000_TDT) = 0;
 
     // Initialize the Transmit Control Register
     uint32_t tctl = 0;
@@ -190,8 +190,8 @@ e1000_init_receive()
     // descriptor ring and tail should point to one descriptor beyond the last valid descriptor in the
     // descriptor ring.
     // Initialize the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_TDH) = 0;
-    *e1000_reg(E1000_TDT) = 1;
+    *e1000_reg(E1000_RDH) = 0;
+    *e1000_reg(E1000_RDT) = 1;
 
     // Initialize the Receive Control Register
     uint32_t rctl = 0;
@@ -299,6 +299,10 @@ e1000_transmit(void *packet, size_t size)
 int
 e1000_receive(void *dst, size_t max_size)
 {
+    // cprintf("Doing it.\n");
+    // *((uint8_t*)dst) = 0x1;
+    // cprintf("DID it.\n");
+
     // note: `dst` is the user supplied buffer,
     //       `buf` is the driver-internal rx buffer.
     uint8_t *buf;
@@ -322,6 +326,7 @@ e1000_receive(void *dst, size_t max_size)
 
     // Copy data from buffer into user's `dst`.
     buf = &rx_buffers[tail][0];
+    cprintf("e1000_receive to dst: %p\n", dst);
     memcpy(dst, buf, desc->desc_length);
     // Check that the copy worked a little.
     assert(((uint8_t*)dst)[0] == buf[0]);

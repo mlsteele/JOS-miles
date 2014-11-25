@@ -527,7 +527,13 @@ static int
 sys_packet_receive(void *dst, size_t max_size)
 {
     int r;
+    // cprintf("sys_packet_receive to dst: %p\n", dst);
     user_mem_assert(curenv, dst, max_size, PTE_U | PTE_W);
+
+    // cprintf("SS]Doing it.\n");
+    // *((uint8_t*)dst) = 0x1;
+    // cprintf("SS]DID it.\n");
+
     r = e1000_receive(dst, max_size);
     return r;
 }
