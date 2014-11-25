@@ -190,8 +190,8 @@ e1000_init_receive()
     // descriptor ring and tail should point to one descriptor beyond the last valid descriptor in the
     // descriptor ring.
     // Initialize the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_RDH) = 0;
-    *e1000_reg(E1000_RDT) = 1;
+    *e1000_reg(E1000_RDH) = 1;
+    *e1000_reg(E1000_RDT) = 0;
 
     // Initialize the Receive Control Register
     uint32_t rctl = 0;
@@ -249,6 +249,7 @@ e1000_transmit(void *packet, size_t size)
     uint32_t head;
     bool slot_available;
 
+    // TODO(miles): minimum size is 48? section 3.3.3
     if (size <= 0) return -E_INVAL;
     if (size > TX_MAX_PACKET_SIZE) return -E_INVAL;
 
@@ -324,9 +325,10 @@ e1000_receive(void *dst, size_t max_size)
     // TODO(miles): handle multi-buffer packets.
     assert(desc->desc_status & E1000_RXD_STAT_EOP);
 
+    cprintf("real tail -: %d\n", *e1000_reg(E1000_RDT));
+
     // Copy data from buffer into user's `dst`.
     buf = &rx_buffers[tail][0];
-    cprintf("e1000_receive to dst: %p\n", dst);
     memcpy(dst, buf, desc->desc_length);
     // Check that the copy worked a little.
     assert(((uint8_t*)dst)[0] == buf[0]);
@@ -335,6 +337,7 @@ e1000_receive(void *dst, size_t max_size)
 
     // Write incremented tail.
     *e1000_reg(E1000_RDT) = tail;
+    cprintf("real tail +: %d\n", *e1000_reg(E1000_RDT));
 
     cprintf("e1000_receive return\n");
     return 0;
