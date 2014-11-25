@@ -47,7 +47,7 @@ static uint8_t tx_buffers[TX_RING_SIZE][TX_MAX_PACKET_SIZE];
 static struct rx_desc volatile rx_desc_list[RX_RING_SIZE] __attribute__((aligned(16)));
 
 // Packet buffers for receiving.
-static uint8_t volatile rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((aligned(16)));
+static uint8_t rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((aligned(16)));
 
 // Convert a register offset into a pointer to virtual memory.
 void
@@ -241,10 +241,10 @@ e1000_enable(struct pci_func *pcif)
 int
 e1000_transmit(void *packet, size_t size)
 {
-    volatile struct tx_desc *desc;
     // note: `packet` is the user supplied buffer,
     //       `buf` is the driver-internal tx buffer.
     uint8_t *buf;
+    volatile struct tx_desc *desc;
     uint32_t tail;
     uint32_t head;
     bool slot_available;
@@ -299,9 +299,38 @@ e1000_transmit(void *packet, size_t size)
 int
 e1000_receive(void *dst, size_t max_size)
 {
+    // note: `dst` is the user supplied buffer,
+    //       `buf` is the driver-internal rx buffer.
+    uint8_t *buf;
+    volatile struct rx_desc *desc;
+    uint32_t tail;
+
     if (max_size <= 0) return -E_INVAL;
     if (max_size > RX_MAX_PACKET_SIZE) return -E_INVAL;
 
-    panic("NOT IMEPL");
+    // Increment local tail. (not written to reg)
+    tail = *e1000_reg(E1000_RDT);
+    tail += 1;
+    tail %= RX_RING_SIZE;
+
+    // Check DD bit of tail+1
+    desc = &rx_desc_list[tail];
+    if (!(desc->desc_status & E1000_RXD_STAT_DD))
+        return 0;
+    // TODO(miles): handle multi-buffer packets.
+    assert(desc->desc_status & E1000_RXD_STAT_EOP);
+
+    // Copy data from buffer into user's `dst`.
+    buf = &rx_buffers[tail][0];
+    memcpy(dst, buf, desc->desc_length);
+    // Check that the copy worked a little.
+    assert(((uint8_t*)dst)[0] == buf[0]);
+    // Check that the buffer is still right (had a bug once).
+    assert(&rx_buffers[tail][0] == buf);
+
+    // Write incremented tail.
+    *e1000_reg(E1000_RDT) = tail;
+
+    cprintf("e1000_receive return\n");
     return 0;
 }
