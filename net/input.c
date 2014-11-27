@@ -18,17 +18,6 @@ input(envid_t ns_envid)
     // another packet in to the same physical page.
     int r;
 
-    // cprintf("input dst: %p\n", &nsipcbuf);
-    // cprintf("input dst value@0: %p\n", *((uint8_t*)&nsipcbuf));
-    // cprintf("input dst value@1: %p\n", *(((uint8_t*)&nsipcbuf) + 1));
-    // cprintf("input dst vx0: %p\n", *((uint8_t*)0x807000));
-    // cprintf("input dst vx1: %p\n", *((uint8_t*)0x807004));
-    // cprintf("IM OUTA HERE\n");
-
-    // cprintf("UU]Doing it.\n");
-    // *((uint8_t*)&nsipcbuf) = 0x1;
-    // cprintf("UU]DID it.\n");
-
     if ((r = sys_page_alloc(0, &nsipcbuf, PTE_P | PTE_U | PTE_W)) < 0)
         panic("could not allocate page: %e");
 
@@ -40,7 +29,6 @@ input(envid_t ns_envid)
             panic("packet receive failed: %d", r);
         if (r == 0)
             continue;
-        cprintf("INCOMING %d\n", r);
         pkt->jp_len = r;
 
         if ((r = sys_ipc_try_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U)))

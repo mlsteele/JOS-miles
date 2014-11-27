@@ -321,10 +321,6 @@ e1000_receive(void *dst, size_t max_size)
     // TODO(miles): handle multi-buffer packets.
     assert(desc->desc_status & E1000_RXD_STAT_EOP);
 
-    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[0][0]);
-    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[1][0]);
-    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[2][0]);
-
     // Copy data from buffer into user's `dst`.
     buf = &rx_buffers[tail][0];
     assert(desc->desc_addr == PADDR(buf));
