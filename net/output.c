@@ -24,6 +24,7 @@ output(envid_t ns_envid)
         if (ipc_type != NSREQ_OUTPUT)
             continue;
         pkt = (struct jif_pkt*)REQVA;
+        cprintf("GOING OUT!\n");
 
         // Send packet to device driver.
         data = pkt->jp_data;

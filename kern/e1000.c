@@ -158,11 +158,11 @@ e1000_init_receive()
     // Initialize the descriptors.
     for (i = 0; i < RX_RING_SIZE; i++) {
         rx_desc_list[i] = desc_template;
-        rx_desc_list[i].desc_addr = (uint32_t)(&rx_buffers[i][0]);
+        rx_desc_list[i].desc_addr = PADDR(&rx_buffers[i][0]);
     }
 
     // Zero the buffers.
-    memset(&rx_buffers, 0, sizeof(rx_buffers));
+    memset(&rx_buffers, 0xbe, sizeof(rx_buffers));
 
     // Program the Receive Address Register(s) (RAL/RAH) with the desired Ethernet addresses.
     // When writing to this register, always write low-to-high. When clearing this register, always clear high-to-low.
@@ -300,10 +300,6 @@ e1000_transmit(void *packet, size_t size)
 int
 e1000_receive(void *dst, size_t max_size)
 {
-    // cprintf("Doing it.\n");
-    // *((uint8_t*)dst) = 0x1;
-    // cprintf("DID it.\n");
-
     // note: `dst` is the user supplied buffer,
     //       `buf` is the driver-internal rx buffer.
     uint8_t *buf;
@@ -325,10 +321,13 @@ e1000_receive(void *dst, size_t max_size)
     // TODO(miles): handle multi-buffer packets.
     assert(desc->desc_status & E1000_RXD_STAT_EOP);
 
-    cprintf("real tail -: %d\n", *e1000_reg(E1000_RDT));
+    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[0][0]);
+    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[1][0]);
+    cprintf("A HIT, A VERY PALPABLE HIT: %p\n", rx_buffers[2][0]);
 
     // Copy data from buffer into user's `dst`.
     buf = &rx_buffers[tail][0];
+    assert(desc->desc_addr == PADDR(buf));
     memcpy(dst, buf, desc->desc_length);
     // Check that the copy worked a little.
     assert(((uint8_t*)dst)[0] == buf[0]);
@@ -337,8 +336,7 @@ e1000_receive(void *dst, size_t max_size)
 
     // Write incremented tail.
     *e1000_reg(E1000_RDT) = tail;
-    cprintf("real tail +: %d\n", *e1000_reg(E1000_RDT));
 
-    cprintf("e1000_receive return\n");
+    cprintf("e1000_receive return %d\n", desc->desc_length);
     return desc->desc_length;
 }

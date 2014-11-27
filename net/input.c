@@ -40,7 +40,7 @@ input(envid_t ns_envid)
             panic("packet receive failed: %d", r);
         if (r == 0)
             continue;
-        cprintf("input recv: %d\n", r);
+        cprintf("INCOMING %d\n", r);
         pkt->jp_len = r;
 
         if ((r = sys_ipc_try_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U)))
