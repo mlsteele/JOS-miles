@@ -340,5 +340,5 @@ e1000_receive(void *dst, size_t max_size)
     cprintf("real tail +: %d\n", *e1000_reg(E1000_RDT));
 
     cprintf("e1000_receive return\n");
-    return 0;
+    return desc->desc_length;
 }
