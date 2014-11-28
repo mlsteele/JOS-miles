@@ -303,6 +303,7 @@ e1000_receive(void *dst, size_t max_size)
     // note: `dst` is the user supplied buffer,
     //       `buf` is the driver-internal rx buffer.
     uint8_t *buf;
+    size_t length;
     volatile struct rx_desc *desc;
     uint32_t tail;
 
@@ -331,8 +332,15 @@ e1000_receive(void *dst, size_t max_size)
     assert(&rx_buffers[tail][0] == buf);
 
     // Write incremented tail.
+    length = desc->desc_length;
+    desc->desc_addr = PADDR(&rx_buffers[tail][0]);
+    desc->desc_length = 0;
+    desc->desc_checksum = 0;
+    desc->desc_status = 0;
+    desc->desc_errors = 0;
+    desc->desc_special = 0;
     *e1000_reg(E1000_RDT) = tail;
 
-    cprintf("e1000_receive return %d\n", desc->desc_length);
-    return desc->desc_length;
+    cprintf("e1000_receive return %d\n", length);
+    return length;
 }
