@@ -161,7 +161,7 @@ e1000_init_receive()
         rx_desc_list[i].desc_addr = PADDR(&rx_buffers[i][0]);
     }
 
-    // Zero the buffers.
+    // Fill all the buffers with identifiable junk.
     memset(&rx_buffers, 0xbe, sizeof(rx_buffers));
 
     // Program the Receive Address Register(s) (RAL/RAH) with the desired Ethernet addresses.
@@ -190,8 +190,8 @@ e1000_init_receive()
     // descriptor ring and tail should point to one descriptor beyond the last valid descriptor in the
     // descriptor ring.
     // Initialize the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_RDH) = 1;
-    *e1000_reg(E1000_RDT) = 0;
+    *e1000_reg(E1000_RDH) = 0;
+    *e1000_reg(E1000_RDT) = RX_RING_SIZE - 1;
 
     // Initialize the Receive Control Register
     uint32_t rctl = 0;
@@ -333,6 +333,8 @@ e1000_receive(void *dst, size_t max_size)
 
     // Write incremented tail.
     length = desc->desc_length;
+
+    // Re-initialize consumed descriptor
     desc->desc_addr = PADDR(&rx_buffers[tail][0]);
     desc->desc_length = 0;
     desc->desc_checksum = 0;
@@ -340,6 +342,7 @@ e1000_receive(void *dst, size_t max_size)
     desc->desc_errors = 0;
     desc->desc_special = 0;
     *e1000_reg(E1000_RDT) = tail;
+    cprintf("E1000 tail after succ read: %d\n", *e1000_reg(E1000_RDT));
 
     cprintf("e1000_receive return %d\n", length);
     return length;

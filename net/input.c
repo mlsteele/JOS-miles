@@ -24,6 +24,12 @@ input(envid_t ns_envid)
     while (true) {
         struct jif_pkt *pkt;
 
+        // Get a new page so the ns server can use it even when another packet is received.
+        if ((r = sys_page_unmap(0, (void*)&nsipcbuf)) < 0)
+            panic("unmap failed: %e", r);
+        if ((r = sys_page_alloc(0, (void*)&nsipcbuf, PTE_P | PTE_U | PTE_W)) < 0)
+            panic("alloc failed: %e", r);
+
         pkt = (struct jif_pkt*)&nsipcbuf;
         if ((r = sys_packet_receive(&(pkt->jp_data), PACKET_BUF_SIZE)) < 0)
             panic("packet receive failed: %d", r);
@@ -31,6 +37,7 @@ input(envid_t ns_envid)
             continue;
         pkt->jp_len = r;
 
+        cprintf("RECV RECV RECV\n");
         if ((r = sys_ipc_try_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U)))
             panic("packet receive relay failed: %e", r);
     }
