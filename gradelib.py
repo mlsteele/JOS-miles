@@ -543,5 +543,6 @@ def stop_on_line(regexp):
     'regexp'."""
 
     def stop(line):
+        # print "@@@ STOP"
         raise TerminateTest
     return call_on_line(regexp, stop)

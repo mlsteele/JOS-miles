@@ -49,7 +49,6 @@ static struct rx_desc volatile rx_desc_list[RX_RING_SIZE] __attribute__((aligned
 // Packet buffers for receiving.
 static uint8_t rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((aligned(16)));
 
-// Convert a register offset into a pointer to virtual memory.
 void
 debug_pci_func(struct pci_func *pcif)
 {
@@ -78,11 +77,26 @@ debug_pci_func(struct pci_func *pcif)
     cprintf("  irq_line: %d\n", pcif->irq_line);
 }
 
+// Convert a register offset into a pointer to virtual memory.
 // offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
 static volatile uint32_t*
 e1000_reg(uint32_t offset)
 {
     return bar0 + (offset / 4);
+}
+
+void
+debug_rx_regs(void)
+{
+    cprintf("debug_rx_regs\n");
+    cprintf("  RA: %p\n", *e1000_reg(E1000_RA));
+    cprintf("  RA + 4: %d\n", *e1000_reg(E1000_RA + 4));
+    cprintf("  MTA: %d\n", *e1000_reg(E1000_MTA));
+    cprintf("  RDBAL: %d\n", *e1000_reg(E1000_RDBAL));
+    cprintf("  RDLEN: %d\n", *e1000_reg(E1000_RDLEN));
+    cprintf("  RDH: %d\n", *e1000_reg(E1000_RDH));
+    cprintf("  RDT: %d\n", *e1000_reg(E1000_RDT));
+    cprintf("  RCTL: %d\n", *e1000_reg(E1000_RCTL));
 }
 
 // Initialize the e1000 for transmission.
@@ -200,6 +214,8 @@ e1000_init_receive()
     // BSIZE = 00b indicating 2048 size buffers.
     rctl |= E1000_RCTL_SECRC;
     *e1000_reg(E1000_RCTL) = rctl;
+
+    debug_rx_regs();
 }
 
 // Returns 0 on success.
@@ -319,20 +335,19 @@ e1000_receive(void *dst, size_t max_size)
     desc = &rx_desc_list[tail];
     if (!(desc->desc_status & E1000_RXD_STAT_DD))
         return 0;
+    cprintf("DRIVER RECV\n");
     // TODO(miles): handle multi-buffer packets.
     assert(desc->desc_status & E1000_RXD_STAT_EOP);
+    length = desc->desc_length;
 
     // Copy data from buffer into user's `dst`.
     buf = &rx_buffers[tail][0];
     assert(desc->desc_addr == PADDR(buf));
-    memcpy(dst, buf, desc->desc_length);
+    memcpy(dst, buf, length);
     // Check that the copy worked a little.
     assert(((uint8_t*)dst)[0] == buf[0]);
     // Check that the buffer is still right (had a bug once).
     assert(&rx_buffers[tail][0] == buf);
-
-    // Write incremented tail.
-    length = desc->desc_length;
 
     // Re-initialize consumed descriptor
     desc->desc_addr = PADDR(&rx_buffers[tail][0]);
@@ -341,6 +356,8 @@ e1000_receive(void *dst, size_t max_size)
     desc->desc_status = 0;
     desc->desc_errors = 0;
     desc->desc_special = 0;
+
+    // Write incremented tail.
     *e1000_reg(E1000_RDT) = tail;
     cprintf("E1000 tail after succ read: %d\n", *e1000_reg(E1000_RDT));
 
