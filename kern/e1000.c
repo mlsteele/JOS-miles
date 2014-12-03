@@ -33,6 +33,15 @@ struct rx_desc {
     uint16_t desc_special;
 };
 
+struct __attribute__((__packed__)) EERD {
+    bool start : 1;
+    uint32_t : 3;
+    bool done : 1;
+    uint32_t : 3;
+    uint8_t addr : 8;
+    uint16_t data : 16;
+};
+
 // Volatility notes
 // http://stackoverflow.com/questions/2304729/how-do-i-declare-an-array-created-using-malloc-to-be-volatile-in-c
 static uint32_t volatile *bar0;
@@ -99,25 +108,12 @@ debug_rx_regs(void)
     cprintf("  RCTL: %d\n", *reg(E1000_RCTL));
 }
 
-struct __attribute__((__packed__)) EERD {
-    bool start : 1;
-    uint32_t : 3;
-    bool done : 1;
-    uint32_t : 3;
-    uint8_t addr : 8;
-    uint16_t data : 16;
-};
-
 uint16_t
 eeprom_read(uint8_t addr)
 {
     volatile struct EERD *eerd_online;
     struct EERD eerd_offline = {0};
     uint32_t eecd;
-
-    eecd = *reg(E1000_EECD);
-    eecd &= ~(E1000_EECD_REQ | E1000_EECD_GNT);
-    *reg(E1000_EECD) = eecd;
 
     eerd_online = (struct EERD*)reg(E1000_EERD);
     assert(eerd_offline.start == 0);
