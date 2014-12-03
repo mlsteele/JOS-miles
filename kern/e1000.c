@@ -66,7 +66,7 @@ reg(uint32_t offset)
     return bar0 + (offset / 4);
 }
 
-void
+static void
 debug_pci_func(struct pci_func *pcif)
 {
     cprintf("pci_func header\n");
@@ -94,7 +94,7 @@ debug_pci_func(struct pci_func *pcif)
     cprintf("  irq_line: %d\n", pcif->irq_line);
 }
 
-void
+static void
 debug_rx_regs(void)
 {
     cprintf("debug_rx_regs\n");
@@ -108,7 +108,7 @@ debug_rx_regs(void)
     cprintf("  RCTL: %d\n", *reg(E1000_RCTL));
 }
 
-uint16_t
+static uint16_t
 eeprom_read(uint8_t addr)
 {
     volatile struct EERD *eerd_online;
@@ -131,7 +131,7 @@ eeprom_read(uint8_t addr)
     return eerd_online->data;
 }
 
-void
+static void
 eeprom_print(uint8_t addr)
 {
     uint32_t addrp = addr;
@@ -139,7 +139,7 @@ eeprom_print(uint8_t addr)
     cprintf("eeprom[%p]: %p\n", addr, resp);
 }
 
-void
+static void
 debug_eeprom(void)
 {
     cprintf("===== debug_eeprom\n");
