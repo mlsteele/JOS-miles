@@ -76,8 +76,26 @@ send_header(struct http_request *req, int code)
 static int
 send_data(struct http_request *req, int fd)
 {
-	// LAB 6: Your code here.
-	panic("send_data not implemented");
+    // LAB 6: Your code here.
+    int r;
+    size_t i;
+    struct Stat stat;
+
+    if ((r = fstat(fd, &stat)) < 0)
+        panic("could not stat: %e\n", r);
+
+    i = 0;
+    for (i = 0; i < stat.st_size; i++) {
+        uint8_t lol;
+        if ((r = read(fd, &lol, 1)) < 0)
+            return r;
+        if ((r = write(req->sock, &lol, 1)) < 0)
+            return r;
+    }
+    // ssize_t read(fd, void *buf, size_t nbytes); 
+    // ssize_t write(req->sock, const void *buf, size_t nbytes); 
+
+    return 0;
 }
 
 static int
