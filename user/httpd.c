@@ -78,22 +78,21 @@ send_data(struct http_request *req, int fd)
 {
     // LAB 6: Your code here.
     int r;
-    size_t i;
+    size_t remaining;
     struct Stat stat;
 
     if ((r = fstat(fd, &stat)) < 0)
         panic("could not stat: %e\n", r);
 
-    i = 0;
-    for (i = 0; i < stat.st_size; i++) {
+    remaining = stat.st_size;
+    while(remaining) {
         uint8_t buf[BUFFSIZE];
-        if ((r = read(fd, &buf, BUFFSIZE)) < 0)
+        if ((r = read(fd, &buf, MIN(BUFFSIZE, remaining))) < 0)
             return r;
-        if ((r = write(req->sock, &buf, BUFFSIZE)) < 0)
+        if ((r = write(req->sock, &buf, r)) < 0)
             return r;
+        remaining -= r;
     }
-    // ssize_t read(fd, void *buf, size_t nbytes); 
-    // ssize_t write(req->sock, const void *buf, size_t nbytes); 
 
     return 0;
 }
