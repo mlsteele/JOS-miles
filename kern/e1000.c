@@ -52,7 +52,7 @@ static uint8_t rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((align
 // Convert a register offset into a pointer to virtual memory.
 // offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
 static volatile uint32_t*
-e1000_reg(uint32_t offset)
+reg(uint32_t offset)
 {
     return bar0 + (offset / 4);
 }
@@ -89,14 +89,14 @@ void
 debug_rx_regs(void)
 {
     cprintf("debug_rx_regs\n");
-    cprintf("  RA: %p\n", *e1000_reg(E1000_RA));
-    cprintf("  RA + 4: %d\n", *e1000_reg(E1000_RA + 4));
-    cprintf("  MTA: %d\n", *e1000_reg(E1000_MTA));
-    cprintf("  RDBAL: %d\n", *e1000_reg(E1000_RDBAL));
-    cprintf("  RDLEN: %d\n", *e1000_reg(E1000_RDLEN));
-    cprintf("  RDH: %d\n", *e1000_reg(E1000_RDH));
-    cprintf("  RDT: %d\n", *e1000_reg(E1000_RDT));
-    cprintf("  RCTL: %d\n", *e1000_reg(E1000_RCTL));
+    cprintf("  RA: %p\n", *reg(E1000_RA));
+    cprintf("  RA + 4: %d\n", *reg(E1000_RA + 4));
+    cprintf("  MTA: %d\n", *reg(E1000_MTA));
+    cprintf("  RDBAL: %d\n", *reg(E1000_RDBAL));
+    cprintf("  RDLEN: %d\n", *reg(E1000_RDLEN));
+    cprintf("  RDH: %d\n", *reg(E1000_RDH));
+    cprintf("  RDT: %d\n", *reg(E1000_RDT));
+    cprintf("  RCTL: %d\n", *reg(E1000_RCTL));
 }
 
 // Initialize the e1000 for transmission.
@@ -125,14 +125,14 @@ e1000_init_transmit()
     memset(&tx_buffers, 0, sizeof(tx_buffers));
 
     // Point TDBAL to the descriptor list. (Should be 16 byte aligned)
-    *e1000_reg(E1000_TDBAL) = PADDR(&tx_desc_list);
+    *reg(E1000_TDBAL) = PADDR(&tx_desc_list);
 
     // Set TDLEN to the length of the descriptor list. (must be 128 byte aligned)
-    *e1000_reg(E1000_TDLEN) = sizeof(tx_desc_list);
+    *reg(E1000_TDLEN) = sizeof(tx_desc_list);
 
     // Ensure the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_TDH) = 0;
-    *e1000_reg(E1000_TDT) = 0;
+    *reg(E1000_TDH) = 0;
+    *reg(E1000_TDT) = 0;
 
     // Initialize the Transmit Control Register
     uint32_t tctl = 0;
@@ -140,7 +140,7 @@ e1000_init_transmit()
     tctl |= E1000_TCTL_PSP;
     tctl |= 0x00000100; // Set E1000_TCTL_CT to 10h
     tctl |= 0x00040000; // Set E1000_TCTL_COLD to 40h
-    *e1000_reg(E1000_TCTL) = tctl;
+    *reg(E1000_TCTL) = tctl;
 
     // See e1000 manual section 13.4.35 table 13-77
     const uint32_t ipgt = 10;
@@ -150,7 +150,7 @@ e1000_init_transmit()
     tipg |= ipgt;
     tipg |= ipgr1 << 10;
     tipg |= ipgr2 << 20;
-    *e1000_reg(E1000_TIPG) = tipg;
+    *reg(E1000_TIPG) = tipg;
 }
 
 // Initialize the e1000 for receiving.
@@ -184,17 +184,17 @@ e1000_init_receive()
     // RAL0 contains the lower 32-bit of the 48-bit Ethernet address.
     // RAH0 contains the high 32-bit of the 48-bit Ethernet address.
     // hard-coded MAC 52:54:00:12:34:56
-    *e1000_reg(E1000_RA) = 0x12005452;
-    *e1000_reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
+    *reg(E1000_RA) = 0x12005452;
+    *reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
 
     // Initialize the MTA (Multicast Table Array) to 0b.
-    *e1000_reg(E1000_MTA) = 0;
+    *reg(E1000_MTA) = 0;
 
     // Point Receive Descriptor Base Address (RDBAL) to the descriptor list. (Should be 16 byte aligned)
-    *e1000_reg(E1000_RDBAL) = PADDR(&rx_desc_list);
+    *reg(E1000_RDBAL) = PADDR(&rx_desc_list);
 
     // Set the Receive Descriptor Length (RDLEN) to the length of the descriptor list. (must be 128 byte aligned)
-    *e1000_reg(E1000_RDLEN) = sizeof(rx_desc_list);
+    *reg(E1000_RDLEN) = sizeof(rx_desc_list);
 
     // The Receive Descriptor Head and Tail registers are initialized (by hardware) to 0b after a power-on
     // or a software-initiated Ethernet controller reset. Receive buffers of appropriate size should be
@@ -204,8 +204,8 @@ e1000_init_receive()
     // descriptor ring and tail should point to one descriptor beyond the last valid descriptor in the
     // descriptor ring.
     // Initialize the head and tail regs are initialized to 0b;
-    *e1000_reg(E1000_RDH) = 0;
-    *e1000_reg(E1000_RDT) = RX_RING_SIZE - 1;
+    *reg(E1000_RDH) = 0;
+    *reg(E1000_RDT) = RX_RING_SIZE - 1;
 
     // Initialize the Receive Control Register
     uint32_t rctl = 0;
@@ -213,7 +213,7 @@ e1000_init_receive()
     rctl |= E1000_RCTL_BAM;
     // BSIZE = 00b indicating 2048 size buffers.
     rctl |= E1000_RCTL_SECRC;
-    *e1000_reg(E1000_RCTL) = rctl;
+    *reg(E1000_RCTL) = rctl;
 
     debug_rx_regs();
 }
@@ -237,7 +237,7 @@ e1000_enable(struct pci_func *pcif)
     // 4 byte register that starts at byte 8 of bar0.
     // 0x80080783 indicates a full duplex link is up
     // at 1000 MB/s, among other things.
-    uint32_t status = *e1000_reg(E1000_STATUS);
+    uint32_t status = *reg(E1000_STATUS);
     cprintf("e1000 status: %p\n", status);
     assert(0x80080783 == status);
 
@@ -269,8 +269,8 @@ e1000_transmit(void *packet, size_t size)
     if (size > TX_MAX_PACKET_SIZE) return -E_INVAL;
 
     // Find a spot in the queue.
-    head = *e1000_reg(E1000_TDH);
-    tail = *e1000_reg(E1000_TDT);
+    head = *reg(E1000_TDH);
+    tail = *reg(E1000_TDT);
     desc = &tx_desc_list[tail];
     slot_available = (desc->desc_status & E1000_TXD_STAT_DD);
     if (!slot_available) {
@@ -300,7 +300,7 @@ e1000_transmit(void *packet, size_t size)
     // Increment tail.
     tail += 1;
     tail %= TX_RING_SIZE;
-    *e1000_reg(E1000_TDT) = tail;
+    *reg(E1000_TDT) = tail;
 
     return size;
 }
@@ -326,7 +326,7 @@ e1000_receive(void *dst, size_t max_size)
     if (max_size > RX_MAX_PACKET_SIZE) return -E_INVAL;
 
     // Increment local tail. (not written to reg)
-    tail = *e1000_reg(E1000_RDT);
+    tail = *reg(E1000_RDT);
     tail += 1;
     tail %= RX_RING_SIZE;
 
@@ -356,7 +356,7 @@ e1000_receive(void *dst, size_t max_size)
     desc->desc_special = 0;
 
     // Write incremented tail.
-    *e1000_reg(E1000_RDT) = tail;
+    *reg(E1000_RDT) = tail;
 
     return length;
 }
