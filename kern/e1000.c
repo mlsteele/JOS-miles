@@ -241,7 +241,7 @@ e1000_init_receive()
     // RAL0 contains the lower 32-bit of the 48-bit Ethernet address.
     // RAH0 contains the high 32-bit of the 48-bit Ethernet address.
     // hard-coded MAC 52:54:00:12:34:56
-    *reg(E1000_RA) = 0x12005452;
+    *reg(E1000_RA) = 0x12005453;
     *reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
 
     // Initialize the MTA (Multicast Table Array) to 0b.
