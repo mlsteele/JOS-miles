@@ -99,6 +99,61 @@ debug_rx_regs(void)
     cprintf("  RCTL: %d\n", *reg(E1000_RCTL));
 }
 
+struct __attribute__((__packed__)) EERD {
+    bool start : 1;
+    uint32_t : 3;
+    bool done : 1;
+    uint32_t : 3;
+    uint8_t addr : 8;
+    uint16_t data : 16;
+};
+
+uint16_t
+eeprom_read(uint8_t addr)
+{
+    volatile struct EERD *eerd_online;
+    struct EERD eerd_offline = {0};
+    uint32_t eecd;
+
+    eecd = *reg(E1000_EECD);
+    eecd &= ~(E1000_EECD_REQ | E1000_EECD_GNT);
+    *reg(E1000_EECD) = eecd;
+
+    eerd_online = (struct EERD*)reg(E1000_EERD);
+    assert(eerd_offline.start == 0);
+    assert(eerd_offline.done == 0);
+    assert(eerd_offline.addr == 0);
+    assert(eerd_offline.data == 0);
+
+    memset(&eerd_offline, 0, sizeof(struct EERD));
+    eerd_offline.addr = addr;
+    eerd_offline.done = 0;
+    eerd_offline.data = 0xabcd;
+    eerd_offline.start = 1;
+    *eerd_online = eerd_offline;
+    while (eerd_online->done != 1) {}
+    return eerd_online->data;
+}
+
+void
+eeprom_print(uint8_t addr)
+{
+    uint32_t addrp = addr;
+    uint32_t resp = eeprom_read(addr);
+    cprintf("eeprom[%p]: %p\n", addr, resp);
+}
+
+void
+debug_eeprom(void)
+{
+    cprintf("===== debug_eeprom\n");
+    int i;
+    for (i = 0; i < 0xD; i += 1) {
+        eeprom_print(i*1);
+    }
+    cprintf("===== debug_eeprom\n");
+}
+
 // Initialize the e1000 for transmission.
 // Follows the steps in section 14.5 of the e1000 manual.
 static void
@@ -168,6 +223,8 @@ e1000_init_receive()
         .desc_errors = 0,
         .desc_special = 0,
     };
+
+    debug_eeprom();
 
     // Initialize the descriptors.
     for (i = 0; i < RX_RING_SIZE; i++) {

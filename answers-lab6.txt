@@ -19,3 +19,7 @@ Cheesy web page!
 How long approximately did it take you to do this lab?
 
 I don't know anymore. So long. >16 hours?
+
+# Challenge
+Read EEPROM
+TODO writeup
