@@ -38,7 +38,7 @@ input(envid_t ns_envid)
         pkt->jp_len = r;
 
         cprintf("NSINPUT IPC SEND\n");
-        if ((r = sys_ipc_try_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U)))
-            panic("packet receive relay failed: %e", r);
+        assert(pkt->jp_len > 0);
+        ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U);
     }
 }
