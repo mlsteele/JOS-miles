@@ -213,18 +213,39 @@ send_error(struct http_request *req, int code)
 static int
 send_file(struct http_request *req)
 {
-	int r;
-	off_t file_size = -1;
-	int fd;
+    int r;
+    off_t file_size = -1;
+    int fd;
+    struct Stat stat;
 
-	// open the requested url for reading
-	// if the file does not exist, send a 404 error using send_error
-	// if the file is a directory, send a 404 error using send_error
-	// set file_size to the size of the file
+    // open the requested url for reading
+    // if the file does not exist, send a 404 error using send_error
+    // if the file is a directory, send a 404 error using send_error
+    // set file_size to the size of the file
 
-	// LAB 6: Your code here.
-	panic("send_file not implemented");
+    // LAB 6: Your code here.
 
+    cprintf("sending file for url: %s\n", req->url);
+    if ((fd = open(req->url, O_RDONLY)) < 0) {
+        cprintf("file does not exist\n");
+        if ((r = send_error(req, 404)) != 0)
+            panic("send error failed: %e", r);
+        goto end;
+    }
+
+    if ((r = fstat(fd, &stat)) < 0)
+        panic("could not stat: %e\n", r);
+
+    if (stat.st_isdir) {
+        cprintf("file is a dir\n");
+        if ((r = send_error(req, 404)) != 0)
+            panic("send error failed: %e", r);
+        goto end;
+    }
+
+    file_size = stat.st_size;
+
+    // Provided code:
 	if ((r = send_header(req, 200)) < 0)
 		goto end;
 
