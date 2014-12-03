@@ -37,7 +37,6 @@ input(envid_t ns_envid)
             continue;
         pkt->jp_len = r;
 
-        cprintf("NSINPUT IPC SEND\n");
         assert(pkt->jp_len > 0);
         ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P | PTE_U);
     }

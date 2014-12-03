@@ -32,7 +32,6 @@ output(envid_t ns_envid)
             cprintf("*SKIP*\n");
             continue;
         }
-        cprintf("SENDING SENDING SENDING\n");
         if ((r = sys_packet_transmit(data, len)) < 0)
             panic("packet transmission failed: %e", r);
     }

@@ -244,7 +244,6 @@ e1000_enable(struct pci_func *pcif)
     e1000_init_transmit();
     e1000_init_receive();
 
-    cprintf("e1000_enable return\n");
     return 0;
 }
 
@@ -335,7 +334,6 @@ e1000_receive(void *dst, size_t max_size)
     desc = &rx_desc_list[tail];
     if (!(desc->desc_status & E1000_RXD_STAT_DD))
         return 0;
-    cprintf("DRIVER RECV\n");
     // TODO(miles): handle multi-buffer packets.
     assert(desc->desc_status & E1000_RXD_STAT_EOP);
     length = desc->desc_length;
@@ -359,8 +357,6 @@ e1000_receive(void *dst, size_t max_size)
 
     // Write incremented tail.
     *e1000_reg(E1000_RDT) = tail;
-    cprintf("E1000 tail after succ read: %d\n", *e1000_reg(E1000_RDT));
 
-    cprintf("e1000_receive return %d\n", length);
     return length;
 }
