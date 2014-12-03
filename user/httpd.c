@@ -86,10 +86,10 @@ send_data(struct http_request *req, int fd)
 
     i = 0;
     for (i = 0; i < stat.st_size; i++) {
-        uint8_t lol;
-        if ((r = read(fd, &lol, 1)) < 0)
+        uint8_t buf[BUFFSIZE];
+        if ((r = read(fd, &buf, BUFFSIZE)) < 0)
             return r;
-        if ((r = write(req->sock, &lol, 1)) < 0)
+        if ((r = write(req->sock, &buf, BUFFSIZE)) < 0)
             return r;
     }
     // ssize_t read(fd, void *buf, size_t nbytes); 
