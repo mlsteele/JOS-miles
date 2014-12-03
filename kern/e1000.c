@@ -49,6 +49,14 @@ static struct rx_desc volatile rx_desc_list[RX_RING_SIZE] __attribute__((aligned
 // Packet buffers for receiving.
 static uint8_t rx_buffers[RX_RING_SIZE][RX_MAX_PACKET_SIZE] __attribute__((aligned(16)));
 
+// Convert a register offset into a pointer to virtual memory.
+// offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
+static volatile uint32_t*
+e1000_reg(uint32_t offset)
+{
+    return bar0 + (offset / 4);
+}
+
 void
 debug_pci_func(struct pci_func *pcif)
 {
@@ -75,14 +83,6 @@ debug_pci_func(struct pci_func *pcif)
         pcif->reg_size[5],
         pcif->reg_size[6]);
     cprintf("  irq_line: %d\n", pcif->irq_line);
-}
-
-// Convert a register offset into a pointer to virtual memory.
-// offset - offset in bytes, usually one of E1000_Xs from e1000_hw.h
-static volatile uint32_t*
-e1000_reg(uint32_t offset)
-{
-    return bar0 + (offset / 4);
 }
 
 void
