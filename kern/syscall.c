@@ -538,6 +538,12 @@ sys_packet_receive(void *dst, size_t max_size)
     return r;
 }
 
+static void
+sys_net_get_mac(struct MAC *dst)
+{
+    e1000_get_mac(dst);
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -600,6 +606,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_packet_transmit((void*)a1, (size_t)a2);
         case SYS_packet_receive:
             return sys_packet_receive((void*)a1, (size_t)a2);
+        case SYS_net_get_mac:
+            sys_net_get_mac((struct MAC*)a1);
+            return 0;
 	}
 
     return -E_INVAL;

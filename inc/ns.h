@@ -7,6 +7,13 @@
 #include <inc/mmu.h>
 #include <lwip/sockets.h>
 
+// Mac address.
+// bytes contains the bytes in low to high order.
+// bytes[0] is the low-order byte of the address.
+struct MAC {
+    uint8_t bytes[6];
+};
+
 struct jif_pkt {
 	int jp_len;
 	char jp_data[0];

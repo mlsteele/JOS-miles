@@ -146,3 +146,9 @@ sys_packet_receive(void *dst, size_t max_size)
 {
 	return syscall(SYS_packet_receive, 0, (uint32_t)dst, max_size, 0, 0, 0);
 }
+
+void
+sys_net_get_mac(struct MAC *dst)
+{
+	syscall(SYS_net_get_mac, 1, (uint32_t)dst, 0, 0, 0, 0);
+}

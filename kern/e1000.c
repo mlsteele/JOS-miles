@@ -42,6 +42,8 @@ struct __attribute__((__packed__)) EERD {
     uint16_t data : 16;
 };
 
+static struct MAC mac;
+
 // Volatility notes
 // http://stackoverflow.com/questions/2304729/how-do-i-declare-an-array-created-using-malloc-to-be-volatile-in-c
 static uint32_t volatile *bar0;
@@ -150,6 +152,34 @@ debug_eeprom(void)
     cprintf("===== debug_eeprom\n");
 }
 
+// Load the MAC address from eeprom.
+static void
+load_mac(void)
+{
+    // mac.bytes[0] = eeprom_read(0);
+    // mac.bytes[1] = eeprom_read(0) >> 8;
+    // mac.bytes[2] = eeprom_read(1);
+    // mac.bytes[3] = eeprom_read(1) >> 8;
+    // mac.bytes[4] = eeprom_read(2);
+    // mac.bytes[5] = eeprom_read(2) >> 8;
+
+    // 52:54:00:12:34:56
+    mac.bytes[0] = 0x52;
+    mac.bytes[1] = 0x54;
+    mac.bytes[2] = 0x00;
+    mac.bytes[3] = 0x12;
+    mac.bytes[4] = 0x34;
+    mac.bytes[5] = 0x56;
+}
+
+// Fill in the mac address of the card.
+// e1000_enable must have already been called.
+void
+e1000_get_mac(struct MAC *dst)
+{
+    *dst = mac;
+}
+
 // Initialize the e1000 for transmission.
 // Follows the steps in section 14.5 of the e1000 manual.
 static void
@@ -231,14 +261,22 @@ e1000_init_receive()
     // Fill all the buffers with identifiable junk.
     memset(&rx_buffers, 0xbe, sizeof(rx_buffers));
 
+    // Get the MAC address
+    load_mac();
+    cprintf("e1000 read MAC as %02x:%02x:%02x:%02x:%02x:%02x\n",
+            mac.bytes[0], mac.bytes[1], mac.bytes[2],
+            mac.bytes[3], mac.bytes[4], mac.bytes[5]);
+
+
     // Program the Receive Address Register(s) (RAL/RAH) with the desired Ethernet addresses.
     // When writing to this register, always write low-to-high. When clearing this register, always clear high-to-low.
     // RAL[0]/RAH[0] should always be used to store the Individual Ethernet MAC address of the Ethernet controller.
     // RAL0 contains the lower 32-bit of the 48-bit Ethernet address.
     // RAH0 contains the high 32-bit of the 48-bit Ethernet address.
-    // hard-coded MAC 52:54:00:12:34:56
-    *reg(E1000_RA) = 0x12005453;
-    *reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
+    // *reg(E1000_RA) = 0x12005452;
+    // *reg(E1000_RA + 4) = E1000_RAH_AV | 0x5634;
+    *reg(E1000_RA) = (mac.bytes[3] << 24) | (mac.bytes[2] << 16) | (mac.bytes[1] << 8) | mac.bytes[0];
+    *reg(E1000_RA + 4) = E1000_RAH_AV | (mac.bytes[5] << 8) | mac.bytes[4];
 
     // Initialize the MTA (Multicast Table Array) to 0b.
     *reg(E1000_MTA) = 0;

@@ -22,6 +22,7 @@ enum {
 	SYS_env_set_kill_target,
 	SYS_packet_transmit,
 	SYS_packet_receive,
+	SYS_net_get_mac,
 	NSYSCALLS
 };
 

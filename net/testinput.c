@@ -16,7 +16,8 @@ announce(void)
 	// listens for very specific ARP requests, such as requests
 	// for the gateway IP.
 
-	uint8_t mac[6] = {0x53, 0x54, 0x00, 0x12, 0x34, 0x56};
+    struct MAC mac;
+    sys_net_get_mac(&mac);
 	uint32_t myip = inet_addr(IP);
 	uint32_t gwip = inet_addr(DEFAULT);
 	int r;
@@ -28,13 +29,13 @@ announce(void)
 	pkt->jp_len = sizeof(*arp);
 
 	memset(arp->ethhdr.dest.addr, 0xff, ETHARP_HWADDR_LEN);
-	memcpy(arp->ethhdr.src.addr,  mac,  ETHARP_HWADDR_LEN);
+	memcpy(arp->ethhdr.src.addr,  mac.bytes,  ETHARP_HWADDR_LEN);
 	arp->ethhdr.type = htons(ETHTYPE_ARP);
 	arp->hwtype = htons(1); // Ethernet
 	arp->proto = htons(ETHTYPE_IP);
 	arp->_hwlen_protolen = htons((ETHARP_HWADDR_LEN << 8) | 4);
 	arp->opcode = htons(ARP_REQUEST);
-	memcpy(arp->shwaddr.addr,  mac,   ETHARP_HWADDR_LEN);
+	memcpy(arp->shwaddr.addr,  mac.bytes,   ETHARP_HWADDR_LEN);
 	memcpy(arp->sipaddr.addrw, &myip, 4);
 	memset(arp->dhwaddr.addr,  0x00,  ETHARP_HWADDR_LEN);
 	memcpy(arp->dipaddr.addrw, &gwip, 4);

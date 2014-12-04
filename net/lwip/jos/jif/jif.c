@@ -55,18 +55,26 @@ static void
 low_level_init(struct netif *netif)
 {
     int r;
+    struct MAC mac;
 
     netif->hwaddr_len = 6;
     netif->mtu = 1500;
     netif->flags = NETIF_FLAG_BROADCAST;
 
     // MAC address is hardcoded to eliminate a system call
-    netif->hwaddr[0] = 0x53;
-    netif->hwaddr[1] = 0x54;
-    netif->hwaddr[2] = 0x00;
-    netif->hwaddr[3] = 0x12;
-    netif->hwaddr[4] = 0x34;
-    netif->hwaddr[5] = 0x56;
+    // netif->hwaddr[0] = 0x52;
+    // netif->hwaddr[1] = 0x54;
+    // netif->hwaddr[2] = 0x00;
+    // netif->hwaddr[3] = 0x12;
+    // netif->hwaddr[4] = 0x34;
+    // netif->hwaddr[5] = 0x56;
+    sys_net_get_mac(&mac);
+    netif->hwaddr[0] = mac.bytes[0];
+    netif->hwaddr[1] = mac.bytes[1];
+    netif->hwaddr[2] = mac.bytes[2];
+    netif->hwaddr[3] = mac.bytes[3];
+    netif->hwaddr[4] = mac.bytes[4];
+    netif->hwaddr[5] = mac.bytes[5];
 }
 
 /*
