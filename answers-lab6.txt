@@ -26,3 +26,7 @@ Challenge! Read about the EEPROM in the developer's manual and write the code to
 During the initialization of the e1000 the driver reads the MAC address from EEPROM and stores it in the drivers memory. It sets the e1000 filter to listen only for that MAC.
 I added the system call `sys_net_get_mac` so that a user process can get the MAC current address. Because MAC addresses are a bit tricky to handle due to the weird byte order, sys_net_get_mac fills in a `struct MAC` which has a bytes array to try to make it the least ambiguous data format for the user to consume.
 The hardcoded MAC in jif.c and in testinput.c has been replaced with a call to sys_net_get_mac.
+To try it out, change the line in GNUmakefile that looks like this
+    QEMUOPTS += -net user -net nic,macaddr=52:54:00:12:34:56,model=e1000 -redir tcp:$(PORT7)::7 \
+And look for the output like
+    e1000 read MAC as 52:54:00:12:34:56
