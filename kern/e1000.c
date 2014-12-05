@@ -113,6 +113,7 @@ debug_rx_regs(void)
     cprintf("  RCTL: %d\n", *reg(E1000_RCTL));
 }
 
+// Read a 16 bit word from EEPROM.
 static uint16_t
 eeprom_read(uint8_t addr)
 {
@@ -121,32 +122,16 @@ eeprom_read(uint8_t addr)
     uint32_t eecd;
 
     eerd_online = (union EERD*)reg(E1000_EERD);
-
     memset(&eerd_offline, 0, sizeof(union EERD));
-    assert(eerd_offline.bits.start == 0);
-    assert(eerd_offline.bits.done == 0);
-    assert(eerd_offline.bits.addr == 0);
-    assert(eerd_offline.bits.data == 0);
-    assert(eerd_offline.value == 0);
-
-    // From https://github.com/aclements/sv6/blob/master/kernel/e1000.cc
-    // [E1000 13.4.4] Ensure EEC control is released
-    eecd = *reg(E1000_EECD);
-    eecd &= ~(E1000_EECD_REQ | E1000_EECD_GNT);
-    *reg(E1000_EECD) = eecd;
 
     eerd_offline.bits.addr = addr;
     eerd_offline.bits.done = 0;
     eerd_offline.bits.data = 0x0;
     eerd_offline.bits.start = 1;
-    // *eerd_online = eerd_offline;
-    cprintf("writing EERD: %p\n", eerd_offline.value);
-    cprintf("sizeof write: %p\n", sizeof(eerd_offline.value));
-    *reg(E1000_EERD) = eerd_offline.value;
+    *eerd_online = eerd_offline;
+    // Beware, reading from eerd_online without this full copy may not work
+    // because of optimizations not compatible with mmio memory.
     while ((eerd_offline = *eerd_online).bits.done != 1) {}
-    cprintf("data: %p\n", eerd_offline.bits.data);
-    cprintf("out: %p\n", eerd_offline.value);
-    cprintf("data: %p\n", eerd_offline.bits.data);
     return eerd_offline.bits.data;
 }
 
