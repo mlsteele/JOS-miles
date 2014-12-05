@@ -143,10 +143,11 @@ eeprom_read(uint8_t addr)
     cprintf("writing EERD: %p\n", eerd_offline.value);
     cprintf("sizeof write: %p\n", sizeof(eerd_offline.value));
     *reg(E1000_EERD) = eerd_offline.value;
-    while (eerd_online->bits.done != 1) {}
-    cprintf("data: %p\n", eerd_online->bits.data);
-    cprintf("out: %p\n", eerd_online->value);
-    return eerd_online->bits.data;
+    while ((eerd_offline = *eerd_online).bits.done != 1) {}
+    cprintf("data: %p\n", eerd_offline.bits.data);
+    cprintf("out: %p\n", eerd_offline.value);
+    cprintf("data: %p\n", eerd_offline.bits.data);
+    return eerd_offline.bits.data;
 }
 
 static void
