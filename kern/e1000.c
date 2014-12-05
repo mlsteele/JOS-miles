@@ -42,12 +42,6 @@ union __attribute__((__packed__)) EERD {
         uint8_t addr : 8;
         uint16_t data : 16;
     } bits;
-    struct {
-        bool start : 1;
-        bool done : 1;
-        uint16_t addr : 14;
-        uint16_t data : 16;
-    } otherbits;
     uint32_t value;
 };
 
@@ -147,8 +141,11 @@ eeprom_read(uint8_t addr)
     eerd_offline.bits.start = 1;
     // *eerd_online = eerd_offline;
     cprintf("writing EERD: %p\n", eerd_offline.value);
+    cprintf("sizeof write: %p\n", sizeof(eerd_offline.value));
     *reg(E1000_EERD) = eerd_offline.value;
     while (eerd_online->bits.done != 1) {}
+    cprintf("data: %p\n", eerd_online->bits.data);
+    cprintf("out: %p\n", eerd_online->value);
     return eerd_online->bits.data;
 }
 
@@ -165,7 +162,7 @@ debug_eeprom(void)
 {
     cprintf("===== debug_eeprom\n");
     // Reset EEPROM
-    *reg(E1000_CTRL_EXT) |= (1 << 13);
+    // *reg(E1000_CTRL_EXT) |= (1 << 13);
 
     // Assert EEPROM present
     assert(*reg(E1000_EECD) | E1000_EECD_PRES);
