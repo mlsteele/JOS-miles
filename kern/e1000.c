@@ -33,20 +33,29 @@ struct rx_desc {
     uint16_t desc_special;
 };
 
-struct __attribute__((__packed__)) EERD {
-    bool start : 1;
-    uint32_t : 3;
-    bool done : 1;
-    uint32_t : 3;
-    uint8_t addr : 8;
-    uint16_t data : 16;
+union __attribute__((__packed__)) EERD {
+    struct {
+        bool start : 1;
+        uint32_t reserved1 : 3;
+        bool done : 1;
+        uint32_t reserved2 : 3;
+        uint8_t addr : 8;
+        uint16_t data : 16;
+    } bits;
+    struct {
+        bool start : 1;
+        bool done : 1;
+        uint16_t addr : 14;
+        uint16_t data : 16;
+    } otherbits;
+    uint32_t value;
 };
 
 static struct MAC mac;
 
 // Volatility notes
 // http://stackoverflow.com/questions/2304729/how-do-i-declare-an-array-created-using-malloc-to-be-volatile-in-c
-static uint32_t volatile *bar0;
+static volatile uint32_t volatile *bar0;
 
 // Ring of transmit descriptors.
 static struct tx_desc volatile tx_desc_list[TX_RING_SIZE] __attribute__((aligned(16)));
@@ -113,24 +122,34 @@ debug_rx_regs(void)
 static uint16_t
 eeprom_read(uint8_t addr)
 {
-    volatile struct EERD *eerd_online;
-    struct EERD eerd_offline = {0};
+    volatile union EERD *eerd_online;
+    union EERD eerd_offline;
     uint32_t eecd;
 
-    eerd_online = (struct EERD*)reg(E1000_EERD);
-    assert(eerd_offline.start == 0);
-    assert(eerd_offline.done == 0);
-    assert(eerd_offline.addr == 0);
-    assert(eerd_offline.data == 0);
+    eerd_online = (union EERD*)reg(E1000_EERD);
 
-    memset(&eerd_offline, 0, sizeof(struct EERD));
-    eerd_offline.addr = addr;
-    eerd_offline.done = 0;
-    eerd_offline.data = 0xabcd;
-    eerd_offline.start = 1;
-    *eerd_online = eerd_offline;
-    while (eerd_online->done != 1) {}
-    return eerd_online->data;
+    memset(&eerd_offline, 0, sizeof(union EERD));
+    assert(eerd_offline.bits.start == 0);
+    assert(eerd_offline.bits.done == 0);
+    assert(eerd_offline.bits.addr == 0);
+    assert(eerd_offline.bits.data == 0);
+    assert(eerd_offline.value == 0);
+
+    // From https://github.com/aclements/sv6/blob/master/kernel/e1000.cc
+    // [E1000 13.4.4] Ensure EEC control is released
+    eecd = *reg(E1000_EECD);
+    eecd &= ~(E1000_EECD_REQ | E1000_EECD_GNT);
+    *reg(E1000_EECD) = eecd;
+
+    eerd_offline.bits.addr = addr;
+    eerd_offline.bits.done = 0;
+    eerd_offline.bits.data = 0x0;
+    eerd_offline.bits.start = 1;
+    // *eerd_online = eerd_offline;
+    cprintf("writing EERD: %p\n", eerd_offline.value);
+    *reg(E1000_EERD) = eerd_offline.value;
+    while (eerd_online->bits.done != 1) {}
+    return eerd_online->bits.data;
 }
 
 static void
@@ -145,6 +164,13 @@ static void
 debug_eeprom(void)
 {
     cprintf("===== debug_eeprom\n");
+    // Reset EEPROM
+    *reg(E1000_CTRL_EXT) |= (1 << 13);
+
+    // Assert EEPROM present
+    assert(*reg(E1000_EECD) | E1000_EECD_PRES);
+    cprintf("EEPROM size: %p\n", 0 != (*reg(E1000_EECD) | E1000_EECD_SIZE));
+
     int i;
     for (i = 0; i < 0xD; i += 1) {
         eeprom_print(i*1);
