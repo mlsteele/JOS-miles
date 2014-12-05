@@ -21,5 +21,8 @@ How long approximately did it take you to do this lab?
 I don't know anymore. So long. >16 hours?
 
 # Challenge
-Read EEPROM
-TODO writeup
+Challenge! Read about the EEPROM in the developer's manual and write the code to load the E1000's MAC address out of the EEPROM. Currently, QEMU's default MAC address is hard-coded into both your receive initialization and lwIP. Fix your initialization to use the MAC address you read from the EEPROM, add a system call to pass the MAC address to lwIP, and modify lwIP to the MAC address read from the card. Test your change by configuring QEMU to use a different MAC address.
+
+During the initialization of the e1000 the driver reads the MAC address from EEPROM and stores it in the drivers memory. It sets the e1000 filter to listen only for that MAC.
+I added the system call `sys_net_get_mac` so that a user process can get the MAC current address. Because MAC addresses are a bit tricky to handle due to the weird byte order, sys_net_get_mac fills in a `struct MAC` which has a bytes array to try to make it the least ambiguous data format for the user to consume.
+The hardcoded MAC in jif.c and in testinput.c has been replaced with a call to sys_net_get_mac.
