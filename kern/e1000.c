@@ -165,20 +165,20 @@ debug_eeprom(void)
 static void
 load_mac(void)
 {
-    // mac.bytes[0] = eeprom_read(0);
-    // mac.bytes[1] = eeprom_read(0) >> 8;
-    // mac.bytes[2] = eeprom_read(1);
-    // mac.bytes[3] = eeprom_read(1) >> 8;
-    // mac.bytes[4] = eeprom_read(2);
-    // mac.bytes[5] = eeprom_read(2) >> 8;
+    mac.bytes[0] = eeprom_read(0);
+    mac.bytes[1] = eeprom_read(0) >> 8;
+    mac.bytes[2] = eeprom_read(1);
+    mac.bytes[3] = eeprom_read(1) >> 8;
+    mac.bytes[4] = eeprom_read(2);
+    mac.bytes[5] = eeprom_read(2) >> 8;
 
     // 52:54:00:12:34:56
-    mac.bytes[0] = 0x52;
-    mac.bytes[1] = 0x54;
-    mac.bytes[2] = 0x00;
-    mac.bytes[3] = 0x12;
-    mac.bytes[4] = 0x34;
-    mac.bytes[5] = 0x56;
+    // mac.bytes[0] = 0x52;
+    // mac.bytes[1] = 0x54;
+    // mac.bytes[2] = 0x00;
+    // mac.bytes[3] = 0x12;
+    // mac.bytes[4] = 0x34;
+    // mac.bytes[5] = 0x56;
 }
 
 // Fill in the mac address of the card.
@@ -259,7 +259,7 @@ e1000_init_receive()
         .desc_special = 0,
     };
 
-    debug_eeprom();
+    // debug_eeprom();
 
     // Initialize the descriptors.
     for (i = 0; i < RX_RING_SIZE; i++) {
